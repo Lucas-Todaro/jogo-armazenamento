@@ -34,7 +34,13 @@ const PHASES = [
     unlocked: true,
     sceneKey: "Phase5Scene",
   },
-  { title: "Pen drive", year: "2000", color: 0x70b7ff },
+  {
+    title: "Pen drive",
+    year: "2000",
+    color: 0x70b7ff,
+    unlocked: true,
+    sceneKey: "Phase6Scene",
+  },
   { title: "SSD e\nNuvem", year: "FUTURO", color: 0x8ef28b },
 ];
 
@@ -91,7 +97,7 @@ export default class TimelineScene extends Phaser.Scene {
     graphics.lineStyle(5, 0x263a52, 1);
     graphics.lineBetween(startX, lineY, startX + spacing * 6, lineY);
     graphics.lineStyle(5, 0xffd166, 1);
-    graphics.lineBetween(startX, lineY, startX + spacing * 4.45, lineY);
+    graphics.lineBetween(startX, lineY, startX + spacing * 5.45, lineY);
 
     PHASES.forEach((phase, index) => {
       const x = startX + spacing * index;
