@@ -5,6 +5,8 @@ import TimelineScene from "./scenes/TimelineScene.js";
 import Phase1Scene from "./scenes/Phase1Scene.js";
 import Phase2Scene from "./scenes/Phase2Scene.js";
 import Phase3Scene from "./scenes/Phase3Scene.js";
+import Phase4Scene from "./scenes/Phase4Scene.js";
+import Phase5Scene from "./scenes/Phase5Scene.js";
 
 const config = {
   type: Phaser.AUTO,
@@ -21,6 +23,8 @@ const config = {
     Phase1Scene,
     Phase2Scene,
     Phase3Scene,
+    Phase4Scene,
+    Phase5Scene,
   ],
   scale: {
     mode: Phaser.Scale.FIT,
