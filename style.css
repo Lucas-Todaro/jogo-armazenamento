@@ -1,0 +1,132 @@
+:root {
+  color-scheme: dark;
+  --background: #050914;
+  --panel: #0a1225;
+  --cyan: #62e7f2;
+  --green: #8ef28b;
+  --yellow: #ffd166;
+  --text: #f1f7ff;
+  --muted: #8da2bd;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 20% 15%, rgba(98, 231, 242, 0.1), transparent 28%),
+    radial-gradient(circle at 85% 80%, rgba(142, 242, 139, 0.08), transparent 30%),
+    linear-gradient(145deg, #03050c 0%, var(--background) 48%, #071323 100%);
+  color: var(--text);
+  font-family: "Nunito", sans-serif;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(98, 231, 242, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(98, 231, 242, 0.025) 1px, transparent 1px);
+  background-size: 28px 28px;
+  content: "";
+  pointer-events: none;
+}
+
+.game-shell {
+  width: min(1080px, 100%);
+  padding: 24px;
+}
+
+.game-frame {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(98, 231, 242, 0.38);
+  border-radius: 22px;
+  background: var(--panel);
+  box-shadow:
+    0 0 0 4px rgba(98, 231, 242, 0.04),
+    0 24px 80px rgba(0, 0, 0, 0.55),
+    0 0 42px rgba(98, 231, 242, 0.08);
+}
+
+.game-frame::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.28);
+  content: "";
+  pointer-events: none;
+}
+
+#game-container {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+}
+
+#game-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+#loading-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  background: #07101f;
+  color: var(--cyan);
+  font-family: "Press Start 2P", monospace;
+  font-size: clamp(10px, 1.4vw, 14px);
+  letter-spacing: 0.05em;
+}
+
+body.game-ready #loading-message {
+  display: none;
+}
+
+.game-hint {
+  margin: 14px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+noscript {
+  padding: 16px;
+  color: var(--yellow);
+  text-align: center;
+}
+
+@media (max-width: 700px) {
+  body {
+    place-items: start center;
+  }
+
+  .game-shell {
+    padding: 10px;
+  }
+
+  .game-frame {
+    border-radius: 14px;
+  }
+
+  .game-hint {
+    margin-top: 10px;
+    font-size: 12px;
+  }
+}

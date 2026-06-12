@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="A Jornada do Bit, um jogo educativo sobre a evolucao dos dispositivos de armazenamento."
+    />
+    <title>A Jornada do Bit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Press+Start+2P&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <main class="game-shell" aria-label="Jogo A Jornada do Bit">
+      <div class="game-frame">
+        <div id="game-container"></div>
+        <p id="loading-message">Carregando a jornada...</p>
+      </div>
+      <p class="game-hint">Use o mouse ou toque na tela para navegar.</p>
+    </main>
+
+    <noscript>Este jogo precisa do JavaScript ativado para funcionar.</noscript>
+
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+    <script type="module" src="src/main.js"></script>
+  </body>
+</html>
