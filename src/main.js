@@ -9,6 +9,7 @@ const config = {
   parent: "game-container",
   width: 960,
   height: 540,
+  resolution: Math.min(window.devicePixelRatio || 1, 2),
   backgroundColor: "#07101f",
   scene: [BootScene, MenuScene, IntroScene, TimelineScene, Phase1Scene],
   scale: {
@@ -18,6 +19,7 @@ const config = {
   render: {
     antialias: true,
     pixelArt: false,
+    roundPixels: true,
   },
 };
 
