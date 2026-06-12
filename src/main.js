@@ -10,12 +10,16 @@ import Phase5Scene from "./scenes/Phase5Scene.js";
 import Phase6Scene from "./scenes/Phase6Scene.js";
 import Phase7Scene from "./scenes/Phase7Scene.js";
 
+const GAME_WIDTH = 960;
+const GAME_HEIGHT = 540;
+const MAX_DEVICE_PIXEL_RATIO = 2;
+
 const config = {
   type: Phaser.AUTO,
   parent: "game-container",
-  width: 960,
-  height: 540,
-  resolution: Math.min(window.devicePixelRatio || 1, 2),
+  width: GAME_WIDTH,
+  height: GAME_HEIGHT,
+  resolution: Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO),
   backgroundColor: "#07101f",
   scene: [
     BootScene,
@@ -33,6 +37,8 @@ const config = {
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
   },
   render: {
     antialias: true,
@@ -42,5 +48,13 @@ const config = {
 };
 
 window.addEventListener("load", () => {
-  new Phaser.Game(config);
+  const game = new Phaser.Game(config);
+  const refreshScale = () => game.scale.refresh();
+
+  window.addEventListener("resize", refreshScale);
+  window.addEventListener("orientationchange", refreshScale);
+
+  if (document.fonts) {
+    document.fonts.ready.then(refreshScale);
+  }
 });
