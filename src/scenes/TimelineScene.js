@@ -4,6 +4,11 @@ import {
   isPhaseUnlocked,
   resetProgress,
 } from "../utils/progressManager.js";
+import {
+  createRoundedPanel,
+  createStandardButton,
+  drawRetroBackground,
+} from "../utils/visualHelpers.js";
 
 const PHASES = [
   {
@@ -93,150 +98,50 @@ export default class TimelineScene extends Phaser.Scene {
   }
 
   drawBackground() {
-    const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x07101f, 0x07101f, 0x0d2037, 0x07101f, 1);
-    graphics.fillRect(0, 0, 960, 540);
-
-    graphics.lineStyle(1, 0x62e7f2, 0.045);
-    for (let x = 0; x < 960; x += 24) {
-      graphics.lineBetween(x, 0, x, 540);
-    }
-    for (let y = 0; y < 540; y += 24) {
-      graphics.lineBetween(0, y, 960, y);
-    }
+    drawRetroBackground(this, {
+      accent: 0x62e7f2,
+      bottomLeft: 0x0d2037,
+      gridAlpha: 0.04,
+      frameAlpha: 0.11,
+    });
   }
 
   createTimeline() {
-    const startX = 90;
-    const spacing = 130;
-    const lineY = 284;
-    const graphics = this.add.graphics();
     const progress = getProgress();
-    const progressEnd = startX + spacing * Math.max(progress.unlockedPhase - 1, 0);
+    const cardWidth = 176;
+    const cardHeight = 116;
+    const points = [
+      { x: 156, y: 188 },
+      { x: 372, y: 188 },
+      { x: 588, y: 188 },
+      { x: 804, y: 188 },
+      { x: 264, y: 362 },
+      { x: 480, y: 362 },
+      { x: 696, y: 362 },
+    ];
 
-    graphics.lineStyle(5, 0x263a52, 1);
-    graphics.lineBetween(startX, lineY, startX + spacing * 6, lineY);
-    graphics.lineStyle(5, 0xffd166, 1);
-    graphics.lineBetween(startX, lineY, progressEnd, lineY);
+    this.drawTimelinePath(points, progress.unlockedPhase);
 
     PHASES.forEach((phase, index) => {
-      const x = startX + spacing * index;
-      const cardY = index % 2 === 0 ? 184 : 378;
-      const connectorEnd = index % 2 === 0 ? cardY + 55 : cardY - 55;
-      const unlocked = isPhaseUnlocked(phase.phaseNumber);
-      const completed = isPhaseCompleted(phase.phaseNumber);
-      const stateColor = completed ? 0x8ef28b : unlocked ? phase.color : 0x34465d;
-      const fillColor = completed ? 0x143f37 : unlocked ? 0x183749 : 0x111a2d;
-      const hoverColor = completed ? 0x1f5a49 : 0x23566a;
+      this.createPhaseCard(phase, points[index], cardWidth, cardHeight);
+    });
 
-      graphics.lineStyle(2, unlocked ? stateColor : 0x34465d, 0.8);
-      graphics.lineBetween(x, lineY, x, connectorEnd);
-
-      const card = this.add
-        .rectangle(x, cardY, 112, 112, 14, fillColor, 1)
-        .setStrokeStyle(2, stateColor, 0.9);
-
-      this.add
-        .circle(x, lineY, 12, unlocked ? stateColor : 0x34465d, 1)
-        .setStrokeStyle(4, 0x07101f, 1);
-
-      this.add
-        .text(x, cardY - 52, `FASE ${phase.phaseNumber}`, {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "6px",
-          color: unlocked ? "#ffd166" : "#53657c",
-        })
-        .setOrigin(0.5);
-
-      this.add
-        .text(x, cardY - 31, phase.title, {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "16px",
-          fontStyle: "800",
-          color: unlocked ? "#f1f7ff" : "#718198",
-          align: "center",
-          lineSpacing: 1,
-        })
-        .setOrigin(0.5);
-
-      this.add
-        .text(x, cardY + 33, phase.year, {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
-          color: unlocked ? "#ffd166" : "#53657c",
-        })
-        .setOrigin(0.5);
-
-      if (completed) {
-        this.add
-          .circle(x + 39, cardY - 39, 13, 0x8ef28b, 1)
-          .setStrokeStyle(3, 0x07101f, 1);
-        this.add
-          .text(x + 39, cardY - 39, "OK", {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: "6px",
-            color: "#07101f",
-          })
-          .setOrigin(0.5);
-      }
-
-      if (unlocked) {
-        card.setInteractive({ useHandCursor: true });
-        this.add
-          .text(x, cardY + 67, completed ? "CONCLUÍDA" : "JOGAR", {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: completed ? "7px" : "9px",
-            color: "#8ef28b",
-          })
-          .setOrigin(0.5);
-
-        card.on("pointerover", () => {
-          card.setFillStyle(hoverColor);
-          this.tweens.add({ targets: card, scale: 1.06, duration: 120 });
-        });
-        card.on("pointerout", () => {
-          card.setFillStyle(fillColor);
-          this.tweens.add({ targets: card, scale: 1, duration: 120 });
-        });
-        card.on("pointerdown", () => {
-          this.cameras.main.fadeOut(220, 7, 16, 31);
-          this.time.delayedCall(230, () => this.scene.start(phase.sceneKey));
-        });
-      } else {
-        card.setInteractive({ useHandCursor: true });
-        this.add.image(x + 38, cardY - 38, "lock").setScale(0.42).setAlpha(0.85);
-        this.add
-          .text(x, cardY + 67, "BLOQUEADA", {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: "7px",
-            color: "#53657c",
-          })
-          .setOrigin(0.5);
-
-        card.on("pointerover", () => {
-          card.setFillStyle(0x172236);
-          this.tweens.add({ targets: card, scale: 1.03, duration: 120 });
-        });
-        card.on("pointerout", () => {
-          card.setFillStyle(fillColor);
-          this.tweens.add({ targets: card, scale: 1, duration: 120 });
-        });
-        card.on("pointerdown", () => {
-          this.showTimelineMessage(
-            "Conclua a fase anterior para desbloquear esta etapa.",
-            "#ff9b78",
-          );
-          this.cameras.main.shake(120, 0.002);
-        });
-      }
+    createRoundedPanel(this, 480, 500, 792, 44, {
+      fill: 0x091424,
+      stroke: 0x263a52,
+      strokeAlpha: 0.55,
+      radius: 14,
+      shadow: false,
     });
 
     this.timelineMessageText = this.add
       .text(480, 500, "", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "15px",
-        fontStyle: "600",
+        fontStyle: "700",
         color: "#6f849d",
+        align: "center",
+        wordWrap: { width: 740 },
       })
       .setOrigin(0.5);
 
@@ -248,48 +153,201 @@ export default class TimelineScene extends Phaser.Scene {
     );
   }
 
-  createBackButton() {
-    const text = this.add
-      .text(38, 38, "← INTRODUÇÃO", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "15px",
-        fontStyle: "800",
-        color: "#8da2bd",
-      })
-      .setInteractive({ useHandCursor: true });
+  drawTimelinePath(points, unlockedPhase) {
+    const connectors = this.add.graphics();
 
-    text.on("pointerover", () => text.setColor("#62e7f2"));
-    text.on("pointerout", () => text.setColor("#8da2bd"));
-    text.on("pointerdown", () => this.scene.start("IntroScene"));
-  }
-
-  createResetButton() {
-    const text = this.add
-      .text(922, 38, "RESETAR PROGRESSO", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "14px",
-        fontStyle: "800",
-        color: "#8da2bd",
-      })
-      .setOrigin(1, 0)
-      .setInteractive({ useHandCursor: true });
-
-    text.on("pointerover", () => text.setColor("#ff9b78"));
-    text.on("pointerout", () => text.setColor("#8da2bd"));
-    text.on("pointerdown", () => {
-      const shouldReset =
-        typeof window === "undefined" ||
-        window.confirm("Tem certeza que deseja apagar o progresso deste navegador?");
-
-      if (!shouldReset) {
+    points.forEach((point, index) => {
+      if (index >= points.length - 1) {
         return;
       }
 
-      resetProgress();
-      this.scene.restart({
-        message: "Progresso apagado neste navegador. A Fase 1 está liberada.",
+      const nextPoint = points[index + 1];
+      const active = unlockedPhase > index + 1;
+      connectors.lineStyle(5, active ? 0xffd166 : 0x263a52, active ? 0.95 : 0.9);
+      connectors.lineBetween(point.x, point.y, nextPoint.x, nextPoint.y);
+      connectors.lineStyle(1, active ? 0xf1f7ff : 0x516278, active ? 0.3 : 0.18);
+      connectors.lineBetween(point.x, point.y - 5, nextPoint.x, nextPoint.y - 5);
+    });
+  }
+
+  createPhaseCard(phase, position, cardWidth, cardHeight) {
+    const { x, y } = position;
+    const unlocked = isPhaseUnlocked(phase.phaseNumber);
+    const completed = isPhaseCompleted(phase.phaseNumber);
+    const stateColor = completed ? 0x8ef28b : unlocked ? phase.color : 0x34465d;
+    const fillColor = completed ? 0x143f37 : unlocked ? 0x183749 : 0x111a2d;
+    const hoverColor = completed ? 0x1f5a49 : 0x23566a;
+    const cardContainer = this.add.container(x, y);
+    const background = this.add.graphics();
+    const hitArea = this.add
+      .rectangle(0, 0, cardWidth, cardHeight, 0xffffff, 0.001)
+      .setInteractive({ useHandCursor: true });
+
+    const drawCard = (color = fillColor, borderAlpha = 0.9) => {
+      background.clear();
+      background.fillStyle(0x000000, 0.22);
+      background.fillRoundedRect(
+        -cardWidth / 2 + 6,
+        -cardHeight / 2 + 7,
+        cardWidth,
+        cardHeight,
+        16,
+      );
+      background.fillStyle(color, unlocked ? 1 : 0.84);
+      background.fillRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 16);
+      background.lineStyle(2, stateColor, borderAlpha);
+      background.strokeRoundedRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, 16);
+      background.lineStyle(1, 0xffffff, unlocked ? 0.055 : 0.025);
+      background.strokeRoundedRect(
+        -cardWidth / 2 + 7,
+        -cardHeight / 2 + 7,
+        cardWidth - 14,
+        cardHeight - 14,
+        10,
+      );
+    };
+
+    drawCard();
+    cardContainer.add(background);
+    this.add
+      .circle(x, y - 72, 12, unlocked ? stateColor : 0x34465d, 1)
+      .setStrokeStyle(4, 0x07101f, 1);
+
+    cardContainer.add(
+      this.add
+        .text(0, -43, `FASE ${phase.phaseNumber}`, {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "7px",
+          color: unlocked ? "#ffd166" : "#53657c",
+        })
+        .setOrigin(0.5),
+    );
+    cardContainer.add(
+      this.add
+        .text(0, -15, phase.title, {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "17px",
+          fontStyle: "900",
+          color: unlocked ? "#f1f7ff" : "#718198",
+          align: "center",
+          lineSpacing: 1,
+        })
+        .setOrigin(0.5),
+    );
+    cardContainer.add(
+      this.add
+        .text(0, 17, phase.year, {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
+          color: unlocked ? "#ffd166" : "#53657c",
+        })
+        .setOrigin(0.5),
+    );
+
+    const stateLabel = completed ? "CONCLUÍDA" : unlocked ? "JOGAR" : "BLOQUEADA";
+    cardContainer.add(
+      this.add
+        .text(0, 43, stateLabel, {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: completed ? "7px" : "8px",
+          color: completed ? "#8ef28b" : unlocked ? "#8ef28b" : "#53657c",
+        })
+        .setOrigin(0.5),
+    );
+
+    if (completed) {
+      cardContainer.add(
+        this.add.circle(66, -42, 13, 0x8ef28b, 1).setStrokeStyle(3, 0x07101f, 1),
+      );
+      cardContainer.add(
+        this.add
+          .text(66, -42, "OK", {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: "6px",
+            color: "#07101f",
+          })
+          .setOrigin(0.5),
+      );
+    }
+
+    if (!unlocked) {
+      cardContainer.add(this.add.image(66, -42, "lock").setScale(0.38).setAlpha(0.85));
+    }
+
+    cardContainer.add(hitArea);
+    hitArea.on("pointerover", () => {
+      drawCard(unlocked ? hoverColor : 0x172236, unlocked ? 1 : 0.65);
+      this.tweens.add({
+        targets: cardContainer,
+        scale: unlocked ? 1.035 : 1.018,
+        duration: 120,
       });
     });
+    hitArea.on("pointerout", () => {
+      drawCard(fillColor, 0.9);
+      this.tweens.add({ targets: cardContainer, scale: 1, duration: 120 });
+    });
+
+    if (unlocked) {
+      hitArea.on("pointerdown", () => {
+        this.cameras.main.fadeOut(220, 7, 16, 31);
+        this.time.delayedCall(230, () => this.scene.start(phase.sceneKey));
+      });
+      return;
+    }
+
+    hitArea.on("pointerdown", () => {
+      this.showTimelineMessage(
+        "Conclua a fase anterior para desbloquear esta etapa.",
+        "#ff9b78",
+      );
+      this.cameras.main.shake(120, 0.002);
+    });
+  }
+
+  createBackButton() {
+    createStandardButton(this, 99, 38, 138, "INTRODUÇÃO", () => this.scene.start("IntroScene"), {
+      height: 34,
+      border: 0x263a52,
+      hover: 0x15344b,
+      fontSize: "7px",
+      textColor: "#8da2bd",
+      hoverTextColor: "#62e7f2",
+      radius: 9,
+    });
+  }
+
+  createResetButton() {
+    createStandardButton(
+      this,
+      820,
+      38,
+      204,
+      "RESETAR PROGRESSO",
+      () => {
+        const shouldReset =
+          typeof window === "undefined" ||
+          window.confirm("Tem certeza que deseja apagar o progresso deste navegador?");
+
+        if (!shouldReset) {
+          return;
+        }
+
+        resetProgress();
+        this.scene.restart({
+          message: "Progresso apagado neste navegador. A Fase 1 está liberada.",
+        });
+      },
+      {
+        height: 34,
+        border: 0x263a52,
+        hover: 0x432331,
+        fontSize: "6px",
+        textColor: "#8da2bd",
+        hoverTextColor: "#ff9b78",
+        radius: 9,
+      },
+    );
   }
 
   showTimelineMessage(message, color = "#6f849d", animate = true) {

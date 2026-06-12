@@ -1,4 +1,5 @@
 import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+import { createStandardButton, drawRetroBackground } from "../utils/visualHelpers.js";
 
 const PHASE5_STARTING_SCORE = 100;
 const PHASE5_DRIVE_POSITION = { x: 334, y: 282 };
@@ -33,31 +34,12 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   drawBackground() {
-    const graphics = this.add.graphics();
-
-    graphics.fillGradientStyle(0x07101f, 0x07101f, 0x17283a, 0x0a1522, 1);
-    graphics.fillRect(0, 0, 960, 540);
-
-    graphics.lineStyle(1, 0xff8f70, 0.04);
-    for (let x = 0; x < 960; x += 24) {
-      graphics.lineBetween(x, 0, x, 540);
-    }
-    for (let y = 0; y < 540; y += 24) {
-      graphics.lineBetween(0, y, 960, y);
-    }
-
-    graphics.lineStyle(2, 0xff8f70, 0.1);
-    graphics.strokeRoundedRect(18, 18, 924, 504, 20);
-
-    const lights = [
-      [55, 76, 0xff8f70],
-      [86, 462, 0xffd166],
-      [883, 78, 0x62e7f2],
-      [905, 448, 0x8ef28b],
-    ];
-    lights.forEach(([x, y, color]) => {
-      graphics.fillStyle(color, 0.5);
-      graphics.fillRect(x, y, 7, 7);
+    drawRetroBackground(this, {
+      accent: 0xff8f70,
+      bottomLeft: 0x17283a,
+      bottomRight: 0x0a1522,
+      gridAlpha: 0.04,
+      frameAlpha: 0.12,
     });
   }
 
@@ -973,45 +955,12 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   createButton(x, y, width, label, callback, options = {}) {
-    const buttonContainer = this.add.container(x, y);
-    const background = this.add
-      .rectangle(0, 0, width, 56, 0x15344b, 1)
-      .setStrokeStyle(2, options.border ?? 0x62e7f2, 0.9)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add
-      .text(0, 0, label, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: options.fontSize ?? "10px",
-        color: "#f1f7ff",
-        align: "center",
-      })
-      .setOrigin(0.5);
-
-    buttonContainer.add([background, text]);
-    buttonContainer.background = background;
-    this.addToStage(buttonContainer);
-
-    background.on("pointerover", () => {
-      background.setFillStyle(options.hover ?? 0x1c5264);
-      text.setColor("#ffd166");
-      this.tweens.add({
-        targets: buttonContainer,
-        scale: 1.035,
-        duration: 110,
-      });
+    return createStandardButton(this, x, y, width, label, callback, {
+      border: options.border ?? 0x62e7f2,
+      hover: options.hover ?? 0x1c5264,
+      fontSize: options.fontSize ?? "10px",
+      addToStage: (button) => this.addToStage(button),
     });
-    background.on("pointerout", () => {
-      background.setFillStyle(0x15344b);
-      text.setColor("#f1f7ff");
-      this.tweens.add({
-        targets: buttonContainer,
-        scale: 1,
-        duration: 110,
-      });
-    });
-    background.on("pointerdown", callback);
-
-    return buttonContainer;
   }
 
   createBackLink() {

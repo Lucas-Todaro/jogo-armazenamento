@@ -1,3 +1,9 @@
+import {
+  createRoundedPanel,
+  createStandardButton,
+  drawRetroBackground,
+} from "../utils/visualHelpers.js";
+
 export default class IntroScene extends Phaser.Scene {
   constructor() {
     super("IntroScene");
@@ -14,10 +20,11 @@ export default class IntroScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    const panel = this.add
-      .rectangle(480, 268, 720, 314, 20, 0x0d1930, 0.96)
-      .setStrokeStyle(2, 0x62e7f2, 0.45);
-    panel.setShadow?.(0, 10, "#000000", 18, false, true);
+    createRoundedPanel(this, 480, 268, 740, 324, {
+      stroke: 0x62e7f2,
+      strokeAlpha: 0.5,
+      radius: 22,
+    });
 
     const bit = this.add.image(480, 161, "bit").setScale(1.25);
     this.tweens.add({
@@ -55,14 +62,13 @@ export default class IntroScene extends Phaser.Scene {
   }
 
   drawBackground() {
-    const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x07101f, 0x07101f, 0x10223b, 0x07101f, 1);
-    graphics.fillRect(0, 0, 960, 540);
-
-    graphics.lineStyle(1, 0x62e7f2, 0.055);
-    for (let y = 12; y < 540; y += 18) {
-      graphics.lineBetween(0, y, 960, y);
-    }
+    const graphics = drawRetroBackground(this, {
+      accent: 0x62e7f2,
+      bottomLeft: 0x10223b,
+      gridStep: 24,
+      gridAlpha: 0.04,
+      frameAlpha: 0.11,
+    });
 
     graphics.lineStyle(3, 0x62e7f2, 0.18);
     graphics.beginPath();
@@ -80,29 +86,13 @@ export default class IntroScene extends Phaser.Scene {
   }
 
   createButton(x, y, label, callback) {
-    const button = this.add
-      .rectangle(x, y, 282, 58, 12, 0x1a4c58, 1)
-      .setStrokeStyle(2, 0x8ef28b, 0.85)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add
-      .text(x, y, label, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "12px",
-        color: "#f1f7ff",
-      })
-      .setOrigin(0.5);
-
-    button.on("pointerover", () => {
-      button.setFillStyle(0x246a69);
-      text.setColor("#ffd166");
-      this.tweens.add({ targets: [button, text], scale: 1.04, duration: 120 });
+    return createStandardButton(this, x, y, 300, label, callback, {
+      height: 60,
+      fill: 0x1a4c58,
+      border: 0x8ef28b,
+      hover: 0x246a69,
+      fontSize: "12px",
     });
-    button.on("pointerout", () => {
-      button.setFillStyle(0x1a4c58);
-      text.setColor("#f1f7ff");
-      this.tweens.add({ targets: [button, text], scale: 1, duration: 120 });
-    });
-    button.on("pointerdown", callback);
   }
 
   createBackButton() {

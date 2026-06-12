@@ -10,8 +10,9 @@ import Phase5Scene from "./scenes/Phase5Scene.js";
 import Phase6Scene from "./scenes/Phase6Scene.js";
 import Phase7Scene from "./scenes/Phase7Scene.js";
 
-const GAME_WIDTH = 960;
-const GAME_HEIGHT = 540;
+const GAME_WIDTH = 1280;
+const GAME_HEIGHT = 720;
+const MIN_RENDER_RESOLUTION = 1.5;
 const MAX_DEVICE_PIXEL_RATIO = 2;
 
 const config = {
@@ -19,7 +20,10 @@ const config = {
   parent: "game-container",
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  resolution: Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO),
+  resolution: Math.min(
+    Math.max(window.devicePixelRatio || 1, MIN_RENDER_RESOLUTION),
+    MAX_DEVICE_PIXEL_RATIO,
+  ),
   backgroundColor: "#07101f",
   scene: [
     BootScene,

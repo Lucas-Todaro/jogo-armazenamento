@@ -1,4 +1,5 @@
 import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+import { drawRetroBackground } from "../utils/visualHelpers.js";
 
 const PHASE7_STARTING_SCORE = 100;
 const PHASE7_SSD_CAPACITY_GB = 500;
@@ -66,31 +67,12 @@ export default class Phase7Scene extends Phaser.Scene {
   }
 
   drawBackground() {
-    const graphics = this.add.graphics();
-
-    graphics.fillGradientStyle(0x07101f, 0x07101f, 0x102840, 0x07101f, 1);
-    graphics.fillRect(0, 0, 960, 540);
-
-    graphics.lineStyle(1, 0x62e7f2, 0.045);
-    for (let x = 0; x < 960; x += 24) {
-      graphics.lineBetween(x, 0, x, 540);
-    }
-    for (let y = 0; y < 540; y += 24) {
-      graphics.lineBetween(0, y, 960, y);
-    }
-
-    graphics.lineStyle(2, 0x8ef28b, 0.12);
-    graphics.strokeRoundedRect(18, 18, 924, 504, 20);
-
-    const nodes = [
-      [56, 76, 0x8ef28b],
-      [112, 464, 0xffd166],
-      [870, 78, 0x62e7f2],
-      [904, 444, 0x70b7ff],
-    ];
-    nodes.forEach(([x, y, color]) => {
-      graphics.fillStyle(color, 0.52);
-      graphics.fillRect(x, y, 7, 7);
+    drawRetroBackground(this, {
+      accent: 0x8ef28b,
+      bottomLeft: 0x102840,
+      bottomRight: 0x07101f,
+      gridAlpha: 0.04,
+      frameAlpha: 0.12,
     });
   }
 
@@ -1147,10 +1129,10 @@ export default class Phase7Scene extends Phaser.Scene {
     const fontSize = options.fontSize ?? "9px";
 
     const shadow = this.add
-      .rectangle(x + 4, y + 5, width, 34, 10, 0x000000, 0.35)
+      .rectangle(x + 4, y + 5, width, 34, 0x000000, 0.35)
       .setOrigin(0.5);
     const button = this.add
-      .rectangle(x, y, width, 34, 10, 0x15344b, 1)
+      .rectangle(x, y, width, 34, 0x15344b, 1)
       .setStrokeStyle(2, border, 0.85)
       .setInteractive({ useHandCursor: true });
     const text = this.add

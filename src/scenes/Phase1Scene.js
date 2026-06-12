@@ -1,4 +1,9 @@
 import { completePhase } from "../utils/progressManager.js";
+import {
+  createRoundedPanel,
+  createStandardButton,
+  drawRetroBackground,
+} from "../utils/visualHelpers.js";
 
 const TARGET_SEQUENCE = [1, 0, 1, 1, 0, 0, 1, 0];
 
@@ -14,28 +19,13 @@ export default class Phase1Scene extends Phaser.Scene {
   }
 
   drawBackground() {
-    const graphics = this.add.graphics();
-
-    graphics.fillGradientStyle(0x07101f, 0x07101f, 0x1b2636, 0x0b1421, 1);
-    graphics.fillRect(0, 0, 960, 540);
-
-    graphics.lineStyle(1, 0xffd166, 0.045);
-    for (let y = 12; y < 540; y += 18) {
-      graphics.lineBetween(0, y, 960, y);
-    }
-
-    graphics.lineStyle(2, 0xffd166, 0.11);
-    graphics.strokeRoundedRect(18, 18, 924, 504, 20);
-
-    const pixels = [
-      [55, 80],
-      [85, 465],
-      [884, 72],
-      [906, 440],
-    ];
-    pixels.forEach(([x, y], index) => {
-      graphics.fillStyle(index % 2 === 0 ? 0xffd166 : 0x62e7f2, 0.45);
-      graphics.fillRect(x, y, 7, 7);
+    drawRetroBackground(this, {
+      accent: 0xffd166,
+      bottomLeft: 0x1b2636,
+      bottomRight: 0x0b1421,
+      gridStep: 24,
+      gridAlpha: 0.04,
+      frameAlpha: 0.12,
     });
   }
 
@@ -54,9 +44,11 @@ export default class Phase1Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    const panel = this.add
-      .rectangle(480, 277, 760, 360, 20, 0x0d1930, 0.97)
-      .setStrokeStyle(2, 0xffd166, 0.5);
+    const panel = createRoundedPanel(this, 480, 277, 760, 360, {
+      stroke: 0xffd166,
+      strokeAlpha: 0.5,
+      radius: 20,
+    });
     this.addToStage(panel);
 
     this.createDecorativeCard(480, 158);
@@ -154,9 +146,13 @@ export default class Phase1Scene extends Phaser.Scene {
   }
 
   createTargetDisplay() {
-    const panel = this.add
-      .rectangle(344, 91, 590, 72, 13, 0x101f35, 0.98)
-      .setStrokeStyle(2, 0x62e7f2, 0.38);
+    const panel = createRoundedPanel(this, 344, 91, 590, 72, {
+      fill: 0x101f35,
+      stroke: 0x62e7f2,
+      strokeAlpha: 0.38,
+      radius: 13,
+      shadow: false,
+    });
     this.addToStage(panel);
 
     this.addToStage(
@@ -227,7 +223,7 @@ export default class Phase1Scene extends Phaser.Scene {
       const holeContainer = this.add.container(x, y);
 
       const column = this.add
-        .rectangle(0, 0, 52, 118, 8, 0xf0cc7a, 0.5)
+        .rectangle(0, 0, 52, 118, 0xf0cc7a, 0.5)
         .setStrokeStyle(1, 0x8c672d, 0.42);
       const hole = this.add
         .circle(0, 0, 18, 0xf5d98e, 1)
@@ -248,7 +244,7 @@ export default class Phase1Scene extends Phaser.Scene {
         })
         .setOrigin(0.5);
       const hitArea = this.add
-        .rectangle(0, 0, 56, 122, 8, 0xffffff, 0.001)
+        .rectangle(0, 0, 56, 122, 0xffffff, 0.001)
         .setInteractive({ useHandCursor: true });
 
       holeContainer.add([column, hole, shine, number, bit, hitArea]);
@@ -377,10 +373,10 @@ export default class Phase1Scene extends Phaser.Scene {
     this.checkButton.background.disableInteractive();
 
     const scannerGlow = this.add
-      .rectangle(72, 264, 18, 220, 6, 0x8ef28b, 0.3)
+      .rectangle(72, 264, 18, 220, 0x8ef28b, 0.3)
       .setBlendMode(Phaser.BlendModes.ADD);
     const scannerLine = this.add
-      .rectangle(72, 264, 4, 220, 2, 0xeaffd9, 0.95)
+      .rectangle(72, 264, 4, 220, 0xeaffd9, 0.95)
       .setBlendMode(Phaser.BlendModes.ADD);
     this.addToStage([scannerGlow, scannerLine]);
 
@@ -455,9 +451,11 @@ export default class Phase1Scene extends Phaser.Scene {
 
     this.createCompletionCard();
 
-    const panel = this.add
-      .rectangle(480, 298, 760, 220, 18, 0x0d1930, 0.97)
-      .setStrokeStyle(2, 0x8ef28b, 0.42);
+    const panel = createRoundedPanel(this, 480, 298, 760, 220, {
+      stroke: 0x8ef28b,
+      strokeAlpha: 0.42,
+      radius: 18,
+    });
     this.addToStage(panel);
 
     this.addToStage(
@@ -517,9 +515,12 @@ export default class Phase1Scene extends Phaser.Scene {
   }
 
   createEducationBox() {
-    const panel = this.add
-      .rectangle(796, 264, 270, 286, 16, 0x101f35, 0.98)
-      .setStrokeStyle(2, 0x62e7f2, 0.35);
+    const panel = createRoundedPanel(this, 796, 264, 270, 286, {
+      fill: 0x101f35,
+      stroke: 0x62e7f2,
+      strokeAlpha: 0.35,
+      radius: 16,
+    });
     this.addToStage(panel);
 
     this.addToStage(
@@ -596,46 +597,12 @@ export default class Phase1Scene extends Phaser.Scene {
   }
 
   createButton(x, y, width, label, callback, options = {}) {
-    const buttonContainer = this.add.container(x, y);
-    const background = this.add
-      .rectangle(0, 0, width, 56, 11, 0x15344b, 1)
-      .setStrokeStyle(2, options.border ?? 0x62e7f2, 0.9)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add
-      .text(0, 0, label, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: options.fontSize ?? "10px",
-        color: "#f1f7ff",
-        align: "center",
-      })
-      .setOrigin(0.5);
-
-    buttonContainer.add([background, text]);
-    buttonContainer.background = background;
-    buttonContainer.label = text;
-    this.addToStage(buttonContainer);
-
-    background.on("pointerover", () => {
-      background.setFillStyle(options.hover ?? 0x1c5264);
-      text.setColor("#ffd166");
-      this.tweens.add({
-        targets: buttonContainer,
-        scale: 1.035,
-        duration: 110,
-      });
+    return createStandardButton(this, x, y, width, label, callback, {
+      border: options.border ?? 0x62e7f2,
+      hover: options.hover ?? 0x1c5264,
+      fontSize: options.fontSize ?? "10px",
+      addToStage: (button) => this.addToStage(button),
     });
-    background.on("pointerout", () => {
-      background.setFillStyle(0x15344b);
-      text.setColor("#f1f7ff");
-      this.tweens.add({
-        targets: buttonContainer,
-        scale: 1,
-        duration: 110,
-      });
-    });
-    background.on("pointerdown", callback);
-
-    return buttonContainer;
   }
 
   createBackLink() {

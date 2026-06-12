@@ -1,3 +1,5 @@
+import { createStandardButton, drawRetroBackground } from "../utils/visualHelpers.js";
+
 export default class MenuScene extends Phaser.Scene {
   constructor() {
     super("MenuScene");
@@ -70,17 +72,13 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   drawBackground() {
-    const graphics = this.add.graphics();
-    graphics.fillGradientStyle(0x07101f, 0x07101f, 0x0b1c30, 0x07101f, 1);
-    graphics.fillRect(0, 0, 960, 540);
-
-    graphics.lineStyle(1, 0x62e7f2, 0.06);
-    for (let x = 0; x <= 960; x += 32) {
-      graphics.lineBetween(x, 0, x, 540);
-    }
-    for (let y = 0; y <= 540; y += 32) {
-      graphics.lineBetween(0, y, 960, y);
-    }
+    const graphics = drawRetroBackground(this, {
+      accent: 0x62e7f2,
+      bottomLeft: 0x0b1c30,
+      gridStep: 32,
+      gridAlpha: 0.055,
+      frameAlpha: 0.1,
+    });
 
     const pixels = [
       [62, 58, 0x62e7f2],
@@ -151,43 +149,13 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   createButton(x, y, label, callback) {
-    const shadow = this.add
-      .rectangle(x + 4, y + 6, 282, 62, 12, 0x000000, 0.35)
-      .setOrigin(0.5);
-    const button = this.add
-      .rectangle(x, y, 282, 62, 12, 0x15344b, 1)
-      .setStrokeStyle(2, 0x62e7f2, 0.9)
-      .setInteractive({ useHandCursor: true });
-    const text = this.add
-      .text(x, y, label, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "13px",
-        color: "#f1f7ff",
-      })
-      .setOrigin(0.5);
-
-    button.on("pointerover", () => {
-      button.setFillStyle(0x1c5264);
-      text.setColor("#8ef28b");
-      this.tweens.add({
-        targets: [button, text, shadow],
-        scaleX: 1.04,
-        scaleY: 1.04,
-        duration: 120,
-      });
+    return createStandardButton(this, x, y, 300, label, callback, {
+      height: 64,
+      border: 0x62e7f2,
+      hover: 0x1c5264,
+      fontSize: "13px",
+      hoverTextColor: "#8ef28b",
+      radius: 14,
     });
-
-    button.on("pointerout", () => {
-      button.setFillStyle(0x15344b);
-      text.setColor("#f1f7ff");
-      this.tweens.add({
-        targets: [button, text, shadow],
-        scaleX: 1,
-        scaleY: 1,
-        duration: 120,
-      });
-    });
-
-    button.on("pointerdown", callback);
   }
 }
