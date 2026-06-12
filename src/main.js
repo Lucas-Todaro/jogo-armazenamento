@@ -8,6 +8,7 @@ import Phase3Scene from "./scenes/Phase3Scene.js";
 import Phase4Scene from "./scenes/Phase4Scene.js";
 import Phase5Scene from "./scenes/Phase5Scene.js";
 import Phase6Scene from "./scenes/Phase6Scene.js";
+import Phase7Scene from "./scenes/Phase7Scene.js";
 
 const config = {
   type: Phaser.AUTO,
@@ -27,6 +28,7 @@ const config = {
     Phase4Scene,
     Phase5Scene,
     Phase6Scene,
+    Phase7Scene,
   ],
   scale: {
     mode: Phaser.Scale.FIT,
