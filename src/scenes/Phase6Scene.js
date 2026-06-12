@@ -1,3 +1,5 @@
+import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+
 const PHASE6_STARTING_SCORE = 100;
 const PHASE6_CAPACITY_MB = 1024;
 const PHASE6_FILES = [
@@ -19,6 +21,13 @@ export default class Phase6Scene extends Phaser.Scene {
   }
 
   create() {
+    if (!isPhaseUnlocked(6)) {
+      this.scene.start("TimelineScene", {
+        message: "Conclua a fase anterior para desbloquear esta etapa.",
+      });
+      return;
+    }
+
     this.drawBackground();
     this.createIntroPanel();
     this.cameras.main.fadeIn(300, 7, 16, 31);
@@ -700,6 +709,8 @@ export default class Phase6Scene extends Phaser.Scene {
   }
 
   showConclusion() {
+    completePhase(6);
+
     const finalScore = this.phase6Score;
     this.clearStage();
     this.phase6Stage = this.add.container(0, 0);

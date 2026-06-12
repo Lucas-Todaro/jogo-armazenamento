@@ -1,3 +1,5 @@
+import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+
 const PHASE5_STARTING_SCORE = 100;
 const PHASE5_DRIVE_POSITION = { x: 334, y: 282 };
 const PHASE5_PLATTER_CENTER = { x: 0, y: -12 };
@@ -18,6 +20,13 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   create() {
+    if (!isPhaseUnlocked(5)) {
+      this.scene.start("TimelineScene", {
+        message: "Conclua a fase anterior para desbloquear esta etapa.",
+      });
+      return;
+    }
+
     this.drawBackground();
     this.createIntroPanel();
     this.cameras.main.fadeIn(300, 7, 16, 31);
@@ -687,6 +696,8 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   showConclusion() {
+    completePhase(5);
+
     const finalScore = this.phase5Score;
     this.clearStage();
     this.phase5Stage = this.add.container(0, 0);

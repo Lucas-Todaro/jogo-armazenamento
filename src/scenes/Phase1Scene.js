@@ -1,3 +1,5 @@
+import { completePhase } from "../utils/progressManager.js";
+
 const TARGET_SEQUENCE = [1, 0, 1, 1, 0, 0, 1, 0];
 
 export default class Phase1Scene extends Phaser.Scene {
@@ -421,6 +423,8 @@ export default class Phase1Scene extends Phaser.Scene {
   }
 
   showConclusion() {
+    completePhase(1);
+
     const finalScore = this.score;
     this.clearStage();
     this.stageContainer = this.add.container(0, 0);

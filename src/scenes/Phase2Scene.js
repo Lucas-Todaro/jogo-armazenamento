@@ -1,3 +1,5 @@
+import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+
 const PHASE2_DATA_BLOCKS = Array.from(
   { length: 10 },
   (_, index) => `DADO-${String(index + 1).padStart(2, "0")}`,
@@ -11,6 +13,13 @@ export default class Phase2Scene extends Phaser.Scene {
   }
 
   create() {
+    if (!isPhaseUnlocked(2)) {
+      this.scene.start("TimelineScene", {
+        message: "Conclua a fase anterior para desbloquear esta etapa.",
+      });
+      return;
+    }
+
     this.drawBackground();
     this.createIntroPanel();
     this.cameras.main.fadeIn(300, 7, 16, 31);
@@ -556,6 +565,8 @@ export default class Phase2Scene extends Phaser.Scene {
   }
 
   showConclusion() {
+    completePhase(2);
+
     const finalScore = this.phase2Score;
     this.clearStage();
     this.phase2Stage = this.add.container(0, 0);
