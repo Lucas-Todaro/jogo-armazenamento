@@ -868,7 +868,6 @@ export default class Phase7Scene extends Phaser.Scene {
   restartPhase() {
     this.cameras.main.fadeOut(180, 7, 16, 31);
     this.time.delayedCall(190, () => {
-      this.drawBackground();
       this.createIntroPanel();
       this.cameras.main.fadeIn(220, 7, 16, 31);
     });
@@ -1204,6 +1203,11 @@ export default class Phase7Scene extends Phaser.Scene {
   }
 
   clearStage() {
+    if (this.phase7ConnectionTween) {
+      this.phase7ConnectionTween.stop();
+      this.phase7ConnectionTween = null;
+    }
+
     if (this.phase7Stage) {
       this.phase7Stage.destroy(true);
       this.phase7Stage = null;

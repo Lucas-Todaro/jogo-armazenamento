@@ -26,13 +26,28 @@ function normalizeProgress(progress) {
         )
     : [];
 
-  const unlockedPhase = Math.min(
+  const uniqueCompletedPhases = [...new Set(completedPhases)].sort((a, b) => a - b);
+  const sequentialCompletedPhases = [];
+  let nextSequentialPhase = 1;
+
+  uniqueCompletedPhases.forEach((phase) => {
+    if (phase === nextSequentialPhase) {
+      sequentialCompletedPhases.push(phase);
+      nextSequentialPhase += 1;
+    }
+  });
+
+  const savedUnlockedPhase = Math.min(
     Math.max(Number(progress.unlockedPhase) || 1, 1),
+    JORNADA_DO_BIT_TOTAL_PHASES,
+  );
+  const unlockedPhase = Math.min(
+    Math.max(savedUnlockedPhase, nextSequentialPhase),
     JORNADA_DO_BIT_TOTAL_PHASES,
   );
 
   return {
-    completedPhases: [...new Set(completedPhases)],
+    completedPhases: sequentialCompletedPhases,
     unlockedPhase,
   };
 }
@@ -88,6 +103,10 @@ export function completePhase(phaseNumber) {
   }
 
   const progress = getProgress();
+
+  if (normalizedPhase > progress.unlockedPhase) {
+    return;
+  }
 
   if (!progress.completedPhases.includes(normalizedPhase)) {
     progress.completedPhases.push(normalizedPhase);
