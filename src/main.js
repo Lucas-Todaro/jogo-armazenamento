@@ -10,20 +10,15 @@ import Phase5Scene from "./scenes/Phase5Scene.js";
 import Phase6Scene from "./scenes/Phase6Scene.js";
 import Phase7Scene from "./scenes/Phase7Scene.js";
 
-const GAME_WIDTH = 1280;
-const GAME_HEIGHT = 720;
-const MIN_RENDER_RESOLUTION = 1.5;
-const MAX_DEVICE_PIXEL_RATIO = 2;
+const GAME_WIDTH = 1920;
+const GAME_HEIGHT = 1080;
 
 const config = {
   type: Phaser.AUTO,
   parent: "game-container",
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  resolution: Math.min(
-    Math.max(window.devicePixelRatio || 1, MIN_RENDER_RESOLUTION),
-    MAX_DEVICE_PIXEL_RATIO,
-  ),
+  resolution: 1,
   backgroundColor: "#07101f",
   scene: [
     BootScene,
@@ -47,7 +42,7 @@ const config = {
   render: {
     antialias: true,
     pixelArt: false,
-    roundPixels: true,
+    roundPixels: false,
   },
 };
 

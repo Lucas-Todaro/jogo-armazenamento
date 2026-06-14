@@ -1,6 +1,6 @@
 export const GAME_SIZE = {
   // Logical 16:9 coordinate system used by the current scenes.
-  // Phaser renders at 1280x720 in main.js and this viewport is scaled up crisply.
+  // Phaser renders at 1920x1080 in main.js and this viewport scales to 2x.
   width: 960,
   height: 540,
 };
