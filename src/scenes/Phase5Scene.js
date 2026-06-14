@@ -2,18 +2,32 @@ import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
 import { createStandardButton, drawRetroBackground } from "../utils/visualHelpers.js";
 
 const PHASE5_STARTING_SCORE = 100;
-const PHASE5_DRIVE_POSITION = { x: 334, y: 282 };
-const PHASE5_PLATTER_CENTER = { x: 0, y: -12 };
-const PHASE5_HEAD_PIVOT = { x: 145, y: 122 };
-const PHASE5_FILES = [
-  { name: "sistema.sys", angle: -112, radius: 92, color: 0x8ef28b },
-  { name: "fotos.zip", angle: -42, radius: 112, color: 0x62e7f2 },
-  { name: "jogo.iso", angle: 22, radius: 84, color: 0xffd166 },
-  { name: "trabalho.doc", angle: 82, radius: 108, color: 0xc49cff },
-  { name: "musica.mp3", angle: 148, radius: 92, color: 0x70b7ff },
-  { name: "backup.bak", angle: 210, radius: 112, color: 0xff8f70 },
+const PHASE5_TARGET_COUNT = 3;
+const PHASE5_DRIVE_POSITION = { x: 342, y: 278 };
+const PHASE5_PLATTER_CENTER = { x: -10, y: -8 };
+const PHASE5_HEAD_PIVOT = { x: 148, y: 124 };
+const PHASE5_FILE_POOL = [
+  "sistema.sys",
+  "fotos.zip",
+  "jogo.iso",
+  "trabalho.doc",
+  "musica.mp3",
+  "backup.bak",
+  "dados.db",
+  "projeto.zip",
+  "video.mp4",
+  "config.ini",
 ];
-const PHASE5_TARGET_FILES = ["sistema.sys", "trabalho.doc", "backup.bak"];
+const PHASE5_SECTOR_SLOTS = [
+  { angle: -126, radius: 96, color: 0x8ef28b },
+  { angle: -82, radius: 118, color: 0x62e7f2 },
+  { angle: -38, radius: 92, color: 0xffd166 },
+  { angle: 8, radius: 116, color: 0xc49cff },
+  { angle: 52, radius: 94, color: 0x70b7ff },
+  { angle: 96, radius: 116, color: 0xff8f70 },
+  { angle: 142, radius: 92, color: 0x8ef28b },
+  { angle: 188, radius: 116, color: 0x62e7f2 },
+];
 
 export default class Phase5Scene extends Phaser.Scene {
   constructor() {
@@ -38,7 +52,7 @@ export default class Phase5Scene extends Phaser.Scene {
       accent: 0xff8f70,
       bottomLeft: 0x17283a,
       bottomRight: 0x0a1522,
-      gridAlpha: 0.04,
+      gridAlpha: 0.035,
       frameAlpha: 0.12,
     });
   }
@@ -49,7 +63,7 @@ export default class Phase5Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 48, "FASE 5: HD / DISCO RÍGIDO", {
+        .text(480, 54, "FASE 5: HD / DISCO RÍGIDO", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "18px",
           color: "#ff8f70",
@@ -59,26 +73,27 @@ export default class Phase5Scene extends Phaser.Scene {
 
     const panel = this.add.graphics();
     panel.fillStyle(0x0d1930, 0.97);
-    panel.fillRoundedRect(90, 92, 780, 390, 20);
-    panel.lineStyle(2, 0xff8f70, 0.46);
-    panel.strokeRoundedRect(90, 92, 780, 390, 20);
+    panel.fillRoundedRect(96, 94, 768, 384, 18);
+    panel.lineStyle(2, 0xff8f70, 0.5);
+    panel.strokeRoundedRect(96, 94, 768, 384, 18);
     this.addToStage(panel);
 
-    this.createIntroHardDrive(480, 154);
+    this.createIntroHardDrive(480, 162);
 
     this.addToStage(
       this.add
         .text(
           480,
-          303,
-          "Com os HDs, os computadores passaram a armazenar muito\nmais dados. O disco rígido usa pratos magnéticos que giram\nrapidamente, enquanto uma cabeça de leitura acessa as\ninformações gravadas.",
+          304,
+          "O HD armazena dados em pratos magnéticos que giram rapidamente.\nUma cabeça de leitura se move até os setores para acessar os arquivos.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "18px",
-            fontStyle: "600",
+            fontSize: "19px",
+            fontStyle: "700",
             color: "#dce8f5",
             align: "center",
-            lineSpacing: 6,
+            lineSpacing: 8,
+            wordWrap: { width: 690 },
           },
         )
         .setOrigin(0.5),
@@ -88,15 +103,16 @@ export default class Phase5Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          397,
-          "O desafio é acessar os arquivos corretos sem causar impacto\nno disco, pois o HD possui partes mecânicas sensíveis.",
+          390,
+          "Recupere os arquivos corretos movendo a cabeça de leitura,\nmas cuidado com vibrações.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "17px",
-            fontStyle: "800",
+            fontStyle: "900",
             color: "#ffd166",
             align: "center",
-            lineSpacing: 5,
+            lineSpacing: 6,
+            wordWrap: { width: 650 },
           },
         )
         .setOrigin(0.5),
@@ -105,32 +121,32 @@ export default class Phase5Scene extends Phaser.Scene {
     this.createButton(
       480,
       454,
-      290,
+      292,
       "COMEÇAR DESAFIO",
       () => this.startChallenge(),
-      { border: 0x8ef28b, hover: 0x246a69 },
+      { border: 0x8ef28b, hover: 0x246a69, fontSize: "10px" },
     );
     this.createBackLink();
   }
 
   startChallenge() {
     this.phase5Score = PHASE5_STARTING_SCORE;
-    this.phase5CurrentSectorIndex = 2;
-    this.phase5TargetIndex = 0;
     this.phase5RecoveredFiles = new Set();
+    this.phase5SectorObjects = [];
     this.phase5IsMoving = false;
     this.phase5IsVibrating = false;
     this.phase5IsComplete = false;
-    this.phase5VibrationWasShown = false;
-    this.phase5SectorObjects = [];
+    this.phase5ActionCount = 0;
     this.phase5VibrationTween = null;
+    this.phase5VibrationPulse = null;
 
+    this.setupRandomChallenge();
     this.clearStage();
     this.phase5Stage = this.add.container(0, 0);
 
     this.addToStage(
       this.add
-        .text(480, 29, "DISCO RÍGIDO MAGNÉTICO", {
+        .text(480, 31, "DISCO RÍGIDO MAGNÉTICO", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "15px",
           color: "#ff8f70",
@@ -139,98 +155,130 @@ export default class Phase5Scene extends Phaser.Scene {
     );
 
     this.phase5ScoreText = this.add
-      .text(916, 29, "PONTOS: 100", {
+      .text(910, 31, "PONTOS: 100", {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "10px",
+        fontSize: "9px",
         color: "#8ef28b",
       })
       .setOrigin(1, 0.5);
     this.addToStage(this.phase5ScoreText);
 
-    this.createMissionPanel();
-    this.createHardDrive();
-    this.createDiskPlatter();
-    this.createFileSectors();
-    this.createReadHead();
+    this.createObjectivePanel();
+    this.createHardDriveLayout();
     this.createStatusPanel();
-    this.createEducationBox();
+    this.createTipBox();
     this.createControls();
-    this.updateCurrentSectorVisual();
-
-    this.phase5MessageText = this.add
-      .text(480, 508, "Use os botões para mover a cabeça até o arquivo procurado.", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "15px",
-        fontStyle: "700",
-        color: "#8da2bd",
-        align: "center",
-        wordWrap: { width: 860 },
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase5MessageText);
+    this.createFeedbackBox();
     this.createBackLink();
+
+    this.updateCurrentSectorVisual();
+    this.updateTargetPanel();
+    this.updateStabilizeButton();
 
     this.phase5Stage.setAlpha(0);
     this.tweens.add({
       targets: this.phase5Stage,
       alpha: 1,
-      duration: 280,
+      duration: 260,
       ease: "Sine.out",
     });
   }
 
-  createMissionPanel() {
+  setupRandomChallenge() {
+    const shuffledFiles = Phaser.Utils.Array.Shuffle([...PHASE5_FILE_POOL]);
+    const slotCount = PHASE5_SECTOR_SLOTS.length;
+
+    this.phase5Files = PHASE5_SECTOR_SLOTS.map((slot, index) => ({
+      ...slot,
+      name: shuffledFiles[index],
+      sector: index + 1,
+    }));
+    this.phase5TargetFiles = Phaser.Utils.Array.Shuffle(
+      this.phase5Files.map((file) => file.name),
+    ).slice(0, PHASE5_TARGET_COUNT);
+    this.phase5TargetIndex = 0;
+    this.phase5CurrentSectorIndex = Phaser.Math.Between(0, slotCount - 1);
+    this.phase5NextVibrationAt = Phaser.Math.Between(3, 5);
+  }
+
+  createObjectivePanel() {
     const panel = this.add.graphics();
     panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(42, 50, 650, 56, 12);
-    panel.lineStyle(2, 0xffd166, 0.38);
-    panel.strokeRoundedRect(42, 50, 650, 56, 12);
+    panel.fillRoundedRect(142, 52, 676, 58, 12);
+    panel.lineStyle(2, 0xffd166, 0.4);
+    panel.strokeRoundedRect(142, 52, 676, 58, 12);
     this.addToStage(panel);
 
     this.addToStage(
       this.add
-        .text(367, 78, "MISSÃO: recupere 3 arquivos sem danificar o HD", {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "16px",
-          fontStyle: "800",
-          color: "#ffd166",
-          align: "center",
-        })
+        .text(
+          480,
+          81,
+          "Objetivo: mova a cabeça de leitura até o setor correto e recupere os arquivos.",
+          {
+            fontFamily: '"Nunito", sans-serif',
+            fontSize: "16px",
+            fontStyle: "900",
+            color: "#f1f7ff",
+            align: "center",
+            wordWrap: { width: 620 },
+          },
+        )
         .setOrigin(0.5),
     );
   }
 
-  createHardDrive() {
+  createHardDriveLayout() {
     this.phase5DriveContainer = this.add.container(
       PHASE5_DRIVE_POSITION.x,
       PHASE5_DRIVE_POSITION.y,
     );
     this.addToStage(this.phase5DriveContainer);
 
+    this.createDriveShell();
+    this.createDiskPlatter();
+    this.createSectors();
+    this.createReadHead();
+
+    this.phase5VibrationBanner = this.add.container(0, -182).setVisible(false);
+    const bannerBg = this.add.graphics();
+    bannerBg.fillStyle(0x2d1212, 0.97);
+    bannerBg.fillRoundedRect(-164, -18, 328, 36, 10);
+    bannerBg.lineStyle(2, 0xff7b68, 0.92);
+    bannerBg.strokeRoundedRect(-164, -18, 328, 36, 10);
+    const bannerText = this.add
+      .text(0, 0, "VIBRACAO DETECTADA!", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "10px",
+        color: "#ff9b78",
+      })
+      .setOrigin(0.5);
+    this.phase5VibrationBanner.add([bannerBg, bannerText]);
+    this.phase5DriveContainer.add(this.phase5VibrationBanner);
+  }
+
+  createDriveShell() {
     const drive = this.add.graphics();
     drive.fillStyle(0x0b1324, 1);
-    drive.fillRoundedRect(-194, -172, 388, 344, 24);
+    drive.fillRoundedRect(-204, -166, 408, 332, 22);
     drive.lineStyle(4, 0x31445a, 1);
-    drive.strokeRoundedRect(-194, -172, 388, 344, 24);
+    drive.strokeRoundedRect(-204, -166, 408, 332, 22);
     drive.fillStyle(0x13283a, 1);
-    drive.fillRoundedRect(-178, -156, 356, 312, 18);
+    drive.fillRoundedRect(-188, -150, 376, 300, 16);
     drive.lineStyle(2, 0x62e7f2, 0.22);
-    drive.strokeRoundedRect(-178, -156, 356, 312, 18);
-
-    drive.fillStyle(0x07101f, 0.82);
-    drive.fillCircle(0, -12, 154);
-    drive.lineStyle(2, 0xff8f70, 0.22);
-    drive.strokeCircle(0, -12, 154);
-
+    drive.strokeRoundedRect(-188, -150, 376, 300, 16);
+    drive.fillStyle(0x07101f, 0.78);
+    drive.fillCircle(PHASE5_PLATTER_CENTER.x, PHASE5_PLATTER_CENTER.y, 150);
+    drive.lineStyle(2, 0xff8f70, 0.25);
+    drive.strokeCircle(PHASE5_PLATTER_CENTER.x, PHASE5_PLATTER_CENTER.y, 150);
     drive.fillStyle(0x263a52, 1);
-    drive.fillRoundedRect(-170, 122, 340, 34, 8);
-    drive.fillStyle(0x62e7f2, 0.32);
-    drive.fillRoundedRect(-158, 132, 230, 9, 4);
-    drive.fillStyle(0x8ef28b, 0.65);
-    drive.fillCircle(128, 138, 5);
-    drive.fillStyle(0xffd166, 0.65);
-    drive.fillCircle(147, 138, 5);
-
+    drive.fillRoundedRect(-174, 118, 348, 32, 8);
+    drive.fillStyle(0x62e7f2, 0.3);
+    drive.fillRoundedRect(-160, 129, 226, 8, 4);
+    drive.fillStyle(0x8ef28b, 0.72);
+    drive.fillCircle(130, 134, 5);
+    drive.fillStyle(0xffd166, 0.72);
+    drive.fillCircle(150, 134, 5);
     this.phase5DriveContainer.add(drive);
   }
 
@@ -243,52 +291,93 @@ export default class Phase5Scene extends Phaser.Scene {
 
     const platter = this.add.graphics();
     platter.fillStyle(0xb7c9d6, 1);
-    platter.fillCircle(0, 0, 134);
+    platter.fillCircle(0, 0, 132);
+    platter.lineStyle(5, 0xf1f7ff, 0.34);
+    platter.strokeCircle(0, 0, 132);
 
-    const tracks = [
-      { radius: 119, color: 0x62e7f2, alpha: 0.28, width: 4 },
-      { radius: 96, color: 0xffd166, alpha: 0.25, width: 5 },
-      { radius: 73, color: 0xc49cff, alpha: 0.26, width: 4 },
-      { radius: 50, color: 0x8ef28b, alpha: 0.2, width: 4 },
-    ];
-    tracks.forEach(({ radius, color, alpha, width }) => {
-      platter.lineStyle(width, color, alpha);
+    [116, 92, 68, 44].forEach((radius, index) => {
+      const colors = [0x62e7f2, 0xffd166, 0xc49cff, 0x8ef28b];
+      platter.lineStyle(4, colors[index], 0.2 + index * 0.02);
       platter.strokeCircle(0, 0, radius);
     });
 
-    platter.lineStyle(3, 0xf1f7ff, 0.38);
-    platter.strokeCircle(0, 0, 134);
+    platter.fillStyle(0xffffff, 0.18);
+    platter.beginPath();
+    platter.moveTo(-98, -72);
+    platter.lineTo(-20, -16);
+    platter.lineTo(-48, 22);
+    platter.lineTo(-116, -38);
+    platter.closePath();
+    platter.fillPath();
+    platter.fillStyle(0x62e7f2, 0.12);
+    platter.beginPath();
+    platter.moveTo(88, -86);
+    platter.lineTo(22, -16);
+    platter.lineTo(55, 24);
+    platter.lineTo(120, -30);
+    platter.closePath();
+    platter.fillPath();
     platter.fillStyle(0x0b1627, 1);
     platter.fillCircle(0, 0, 24);
     platter.lineStyle(5, 0x8799a8, 0.85);
     platter.strokeCircle(0, 0, 24);
 
-    platter.fillStyle(0xffffff, 0.18);
-    platter.beginPath();
-    platter.moveTo(-100, -78);
-    platter.lineTo(-22, -18);
-    platter.lineTo(-50, 22);
-    platter.lineTo(-118, -42);
-    platter.closePath();
-    platter.fillPath();
-
-    platter.fillStyle(0x62e7f2, 0.1);
-    platter.beginPath();
-    platter.moveTo(90, -92);
-    platter.lineTo(25, -18);
-    platter.lineTo(58, 24);
-    platter.lineTo(126, -34);
-    platter.closePath();
-    platter.fillPath();
-
     this.phase5PlatterSpin.add(platter);
-
     this.tweens.add({
       targets: this.phase5PlatterSpin,
       angle: 360,
-      duration: 22000,
+      duration: 20000,
       repeat: -1,
       ease: "Linear",
+    });
+  }
+
+  createSectors() {
+    this.phase5SectorHighlight = this.add
+      .circle(0, 0, 29, 0xffd166, 0.1)
+      .setStrokeStyle(4, 0xffd166, 0.95)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.phase5DriveContainer.add(this.phase5SectorHighlight);
+
+    this.phase5Files.forEach((file, index) => {
+      const position = this.getSectorPosition(file);
+      const sectorContainer = this.add.container(position.x, position.y);
+      const labelY = position.y > 38 ? -30 : 31;
+      const marker = this.add
+        .circle(0, 0, 17, 0x07101f, 1)
+        .setStrokeStyle(3, file.color, 0.9);
+      const dot = this.add.circle(0, 0, 5, file.color, 1);
+      const tag = this.add.rectangle(0, labelY, 88, 20, 0xf1f7ff, 0.94);
+      const label = this.add
+        .text(0, labelY, file.name, {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "10px",
+          fontStyle: "900",
+          color: "#07101f",
+          align: "center",
+        })
+        .setOrigin(0.5);
+      const recovered = this.add
+        .text(0, -1, "OK", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
+          color: "#8ef28b",
+        })
+        .setOrigin(0.5)
+        .setVisible(false);
+
+      sectorContainer.add([marker, dot, tag, label, recovered]);
+      this.phase5DriveContainer.add(sectorContainer);
+      this.phase5SectorObjects.push({
+        container: sectorContainer,
+        marker,
+        dot,
+        tag,
+        label,
+        recovered,
+        file,
+        index,
+      });
     });
   }
 
@@ -298,136 +387,82 @@ export default class Phase5Scene extends Phaser.Scene {
 
     this.phase5HeadPivot = this.add
       .circle(PHASE5_HEAD_PIVOT.x, PHASE5_HEAD_PIVOT.y, 18, 0x263a52, 1)
-      .setStrokeStyle(4, 0x62e7f2, 0.55);
+      .setStrokeStyle(4, 0x62e7f2, 0.58);
     this.phase5DriveContainer.add(this.phase5HeadPivot);
 
     this.phase5HeadTip = this.add
-      .rectangle(0, 0, 56, 17, 0x60758a, 1)
-      .setStrokeStyle(2, 0xf1f7ff, 0.35);
+      .rectangle(0, 0, 58, 18, 0x60758a, 1)
+      .setStrokeStyle(2, 0xf1f7ff, 0.42);
     this.phase5DriveContainer.add(this.phase5HeadTip);
 
     this.updateReadHeadPosition(false);
   }
 
-  createFileSectors() {
-    this.phase5SectorHighlight = this.add
-      .circle(0, 0, 27, 0xff8f70, 0.08)
-      .setStrokeStyle(3, 0xffd166, 0.9)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    this.phase5DriveContainer.add(this.phase5SectorHighlight);
-
-    PHASE5_FILES.forEach((file) => {
-      const position = this.getSectorPosition(file);
-      const sectorContainer = this.add.container(position.x, position.y);
-      const marker = this.add
-        .circle(0, 0, 18, 0x101f35, 1)
-        .setStrokeStyle(3, file.color, 0.85);
-      const dot = this.add.circle(0, 0, 5, file.color, 0.95);
-      const label = this.add
-        .text(0, 31, file.name, {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "10px",
-          fontStyle: "800",
-          color: "#dce8f5",
-          align: "center",
-        })
-        .setOrigin(0.5);
-      const recovered = this.add
-        .text(0, -2, "✓", {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "21px",
-          fontStyle: "900",
-          color: "#8ef28b",
-        })
-        .setOrigin(0.5)
-        .setVisible(false);
-
-      sectorContainer.add([marker, dot, label, recovered]);
-      this.phase5DriveContainer.add(sectorContainer);
-      this.phase5SectorObjects.push({ container: sectorContainer, marker, dot, recovered });
-    });
-  }
-
   createStatusPanel() {
     const panel = this.add.graphics();
     panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(524, 124, 176, 128, 12);
-    panel.lineStyle(2, 0xff8f70, 0.36);
-    panel.strokeRoundedRect(524, 124, 176, 128, 12);
+    panel.fillRoundedRect(568, 124, 334, 140, 14);
+    panel.lineStyle(2, 0xff8f70, 0.4);
+    panel.strokeRoundedRect(568, 124, 334, 140, 14);
     this.addToStage(panel);
 
     this.addToStage(
       this.add
-        .text(612, 145, "ARQUIVO PROCURADO", {
+        .text(735, 146, "ARQUIVO PROCURADO", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "7px",
+          fontSize: "8px",
           color: "#ffd166",
         })
         .setOrigin(0.5),
     );
 
     this.phase5TargetText = this.add
-      .text(612, 173, PHASE5_TARGET_FILES[0], {
+      .text(735, 181, "", {
         fontFamily: '"Nunito", sans-serif',
-        fontSize: "18px",
+        fontSize: "24px",
         fontStyle: "900",
         color: "#f1f7ff",
+        align: "center",
+        wordWrap: { width: 292 },
       })
       .setOrigin(0.5);
     this.addToStage(this.phase5TargetText);
 
     this.phase5CurrentSectorText = this.add
-      .text(612, 207, "SETOR ATUAL: jogo.iso", {
+      .text(735, 222, "", {
         fontFamily: '"Nunito", sans-serif',
-        fontSize: "12px",
+        fontSize: "13px",
         fontStyle: "800",
-        color: "#8da2bd",
+        color: "#c7d7e8",
         align: "center",
-        wordWrap: { width: 150 },
+        wordWrap: { width: 288 },
       })
       .setOrigin(0.5);
     this.addToStage(this.phase5CurrentSectorText);
 
     this.phase5RecoveredText = this.add
-      .text(612, 232, "RECUPERADOS: 0 / 3", {
+      .text(735, 246, "", {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "7px",
+        fontSize: "8px",
         color: "#8ef28b",
       })
       .setOrigin(0.5);
     this.addToStage(this.phase5RecoveredText);
-
-    const vibrationPanel = this.add.graphics();
-    vibrationPanel.fillStyle(0x101f35, 0.98);
-    vibrationPanel.fillRoundedRect(524, 264, 176, 66, 12);
-    vibrationPanel.lineStyle(2, 0x62e7f2, 0.34);
-    vibrationPanel.strokeRoundedRect(524, 264, 176, 66, 12);
-    this.addToStage(vibrationPanel);
-
-    this.phase5VibrationText = this.add
-      .text(612, 297, "HD ESTÁVEL", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "8px",
-        color: "#8ef28b",
-        align: "center",
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase5VibrationText);
   }
 
-  createEducationBox() {
+  createTipBox() {
     const panel = this.add.graphics();
     panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(720, 112, 218, 282, 16);
+    panel.fillRoundedRect(592, 286, 286, 84, 12);
     panel.lineStyle(2, 0x62e7f2, 0.34);
-    panel.strokeRoundedRect(720, 112, 218, 282, 16);
+    panel.strokeRoundedRect(592, 286, 286, 84, 12);
     this.addToStage(panel);
 
     this.addToStage(
       this.add
-        .text(829, 137, "HD MECÂNICO", {
+        .text(735, 308, "DICA", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "9px",
+          fontSize: "8px",
           color: "#62e7f2",
         })
         .setOrigin(0.5),
@@ -436,16 +471,17 @@ export default class Phase5Scene extends Phaser.Scene {
     this.addToStage(
       this.add
         .text(
-          829,
-          256,
-          "HDs armazenam dados\nmagneticamente em pratos\nque giram rapidamente.\n\nUma cabeça de leitura se\nmove para acessar os\nsetores do disco.\n\nEles oferecem grande\ncapacidade, mas possuem\npartes mecânicas sensíveis\na impactos e vibrações.",
+          735,
+          340,
+          "O HD usa uma cabeça mecânica para acessar setores nos pratos magnéticos.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "13px",
-            fontStyle: "600",
+            fontStyle: "800",
             color: "#c7d7e8",
             align: "center",
             lineSpacing: 3,
+            wordWrap: { width: 246 },
           },
         )
         .setOrigin(0.5),
@@ -454,60 +490,78 @@ export default class Phase5Scene extends Phaser.Scene {
 
   createControls() {
     this.phase5BackButton = this.createButton(
-      196,
-      446,
-      152,
-      "SETOR -",
-      () => this.moveHeadBackward(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "9px" },
+      190,
+      454,
+      170,
+      "SETOR ANTERIOR",
+      () => this.moveToPreviousSector(),
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
     );
 
     this.phase5ForwardButton = this.createButton(
-      364,
-      446,
-      152,
-      "SETOR +",
-      () => this.moveHeadForward(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "9px" },
+      382,
+      454,
+      170,
+      "PRÓXIMO SETOR",
+      () => this.moveToNextSector(),
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
     );
 
     this.phase5ReadButton = this.createButton(
-      558,
-      446,
-      188,
+      574,
+      454,
+      170,
       "LER SETOR",
-      () => this.readSector(),
+      () => this.readCurrentSector(),
       { border: 0x8ef28b, hover: 0x246a69, fontSize: "9px" },
     );
 
     this.phase5StabilizeButton = this.createButton(
-      792,
-      446,
-      230,
+      782,
+      454,
+      214,
       "ESTABILIZAR HD",
       () => this.stabilizeHardDrive(),
       { border: 0xffd166, hover: 0x5c4b22, fontSize: "8px" },
     );
   }
 
-  moveHeadForward() {
-    this.moveHead(1);
+  createFeedbackBox() {
+    const panel = this.add.graphics();
+    panel.fillStyle(0x091424, 0.98);
+    panel.fillRoundedRect(90, 492, 780, 34, 10);
+    panel.lineStyle(2, 0x62e7f2, 0.25);
+    panel.strokeRoundedRect(90, 492, 780, 34, 10);
+    this.addToStage(panel);
+
+    this.phase5FeedbackText = this.add
+      .text(480, 509, "Use os botões para mover a cabeça até o arquivo procurado.", {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "14px",
+        fontStyle: "900",
+        color: "#8da2bd",
+        align: "center",
+        wordWrap: { width: 720 },
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase5FeedbackText);
   }
 
-  moveHeadBackward() {
-    this.moveHead(-1);
+  moveToPreviousSector() {
+    this.moveReadHead(-1);
   }
 
-  moveHead(direction) {
+  moveToNextSector() {
+    this.moveReadHead(1);
+  }
+
+  moveReadHead(direction) {
     if (this.phase5IsComplete || this.phase5IsMoving) {
       return;
     }
 
     if (this.phase5IsVibrating) {
-      this.showMessage(
-        "Vibração detectada! Estabilize o HD antes de continuar.",
-        "#ff9b78",
-      );
+      this.showFeedback("Vibração detectada! Estabilize o HD antes de continuar.", "warning");
       this.cameras.main.shake(120, 0.002);
       return;
     }
@@ -515,27 +569,25 @@ export default class Phase5Scene extends Phaser.Scene {
     this.phase5CurrentSectorIndex = Phaser.Math.Wrap(
       this.phase5CurrentSectorIndex + direction,
       0,
-      PHASE5_FILES.length,
+      this.phase5Files.length,
     );
     this.phase5IsMoving = true;
     this.updateScore(-1);
-    this.showMessage("Cabeça de leitura movida para outro setor.", "#62e7f2");
+    this.countActionAndMaybeVibrate();
     this.updateCurrentSectorVisual();
+    this.showFeedback("Cabeça movida. Confira o setor antes de ler.", "neutral");
     this.updateReadHeadPosition(true, () => {
-      this.phase5IsMoving = false;
-    });
-    this.time.delayedCall(460, () => {
       this.phase5IsMoving = false;
     });
   }
 
-  readSector() {
+  readCurrentSector() {
     if (this.phase5IsComplete) {
       return;
     }
 
     if (this.phase5IsMoving) {
-      this.showMessage("Aguarde a cabeça de leitura chegar ao setor.", "#ffd166");
+      this.showFeedback("Aguarde a cabeça chegar ao setor.", "warning");
       return;
     }
 
@@ -545,11 +597,12 @@ export default class Phase5Scene extends Phaser.Scene {
       return;
     }
 
-    const currentFile = PHASE5_FILES[this.phase5CurrentSectorIndex].name;
-    const targetFile = PHASE5_TARGET_FILES[this.phase5TargetIndex];
+    const currentFile = this.phase5Files[this.phase5CurrentSectorIndex].name;
+    const targetFile = this.phase5TargetFiles[this.phase5TargetIndex];
 
     if (currentFile !== targetFile) {
       this.updateScore(-10);
+      this.countActionAndMaybeVibrate();
       this.showFailure("Esse setor não contém o arquivo procurado.");
       return;
     }
@@ -560,18 +613,26 @@ export default class Phase5Scene extends Phaser.Scene {
     this.createRecoverySparkles(this.phase5CurrentSectorIndex);
     this.phase5TargetIndex += 1;
 
-    if (this.phase5TargetIndex >= PHASE5_TARGET_FILES.length) {
+    if (this.phase5TargetIndex >= this.phase5TargetFiles.length) {
       this.phase5IsComplete = true;
       this.disableChallengeControls();
-      this.showMessage("Todos os arquivos importantes foram recuperados!", "#8ef28b");
-      this.time.delayedCall(1400, () => this.showConclusion());
+      this.showFeedback("Todos os arquivos importantes foram recuperados!", "success");
+      this.time.delayedCall(1300, () => this.showConclusion());
       return;
     }
 
+    this.countActionAndMaybeVibrate();
     this.updateTargetPanel();
-    if (!this.phase5VibrationWasShown) {
-      this.phase5VibrationWasShown = true;
-      this.time.delayedCall(650, () => this.triggerVibration());
+  }
+
+  countActionAndMaybeVibrate() {
+    if (this.phase5IsComplete || this.phase5IsVibrating) {
+      return;
+    }
+
+    this.phase5ActionCount += 1;
+    if (this.phase5ActionCount >= this.phase5NextVibrationAt) {
+      this.triggerVibration();
     }
   }
 
@@ -581,11 +642,9 @@ export default class Phase5Scene extends Phaser.Scene {
     }
 
     this.phase5IsVibrating = true;
-    this.phase5VibrationText.setText("VIBRAÇÃO DETECTADA!").setColor("#ff9b78");
-    this.showMessage(
-      "Vibração detectada! Estabilize o HD antes de continuar.",
-      "#ff9b78",
-    );
+    this.phase5VibrationBanner.setVisible(true);
+    this.updateStabilizeButton();
+    this.showFeedback("Vibração detectada! Estabilize o HD antes de continuar.", "warning");
 
     this.phase5VibrationTween = this.tweens.add({
       targets: this.phase5DriveContainer,
@@ -596,29 +655,33 @@ export default class Phase5Scene extends Phaser.Scene {
       repeat: -1,
       ease: "Sine.inOut",
     });
+
+    this.phase5VibrationPulse = this.tweens.add({
+      targets: this.phase5VibrationBanner,
+      scale: 1.06,
+      duration: 170,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
   }
 
   stabilizeHardDrive() {
-    if (this.phase5IsComplete) {
-      return;
-    }
-
-    if (!this.phase5IsVibrating) {
-      this.showMessage("O HD já está estável. Continue buscando os arquivos.", "#8da2bd");
+    if (this.phase5IsComplete || !this.phase5IsVibrating) {
       return;
     }
 
     this.phase5IsVibrating = false;
-    if (this.phase5VibrationTween) {
-      this.phase5VibrationTween.stop();
-      this.phase5VibrationTween = null;
-    }
+    this.stopVibrationTweens();
     this.phase5DriveContainer.setPosition(
       PHASE5_DRIVE_POSITION.x,
       PHASE5_DRIVE_POSITION.y,
     );
-    this.phase5VibrationText.setText("HD ESTÁVEL").setColor("#8ef28b");
-    this.showMessage("HD estabilizado. A leitura pode continuar.", "#8ef28b");
+    this.phase5VibrationBanner.setVisible(false).setScale(1);
+    this.phase5ActionCount = 0;
+    this.phase5NextVibrationAt = Phaser.Math.Between(3, 6);
+    this.updateStabilizeButton();
+    this.showFeedback("HD estabilizado. A leitura pode continuar.", "success");
 
     this.tweens.add({
       targets: this.phase5DriveContainer,
@@ -642,21 +705,139 @@ export default class Phase5Scene extends Phaser.Scene {
       scale: 1.12,
       duration: 100,
       yoyo: true,
+      ease: "Sine.inOut",
     });
   }
 
-  showMessage(message, color = "#8da2bd") {
-    this.phase5MessageText.setText(message).setColor(color);
+  updateTargetPanel() {
+    const targetFile = this.phase5TargetFiles[this.phase5TargetIndex];
+    this.phase5TargetText.setText(targetFile);
+    this.phase5RecoveredText.setText(
+      `RECUPERADOS: ${this.phase5RecoveredFiles.size} / ${this.phase5TargetFiles.length}`,
+    );
+  }
+
+  updateCurrentSectorVisual() {
+    const currentFile = this.phase5Files[this.phase5CurrentSectorIndex];
+    const position = this.getSectorPosition(currentFile);
+
+    this.phase5SectorHighlight.setPosition(position.x, position.y);
+    this.phase5CurrentSectorText.setText(
+      `Setor atual: ${currentFile.sector} - ${currentFile.name}`,
+    );
+    this.updateTargetPanel();
+
+    this.phase5SectorObjects.forEach(({ marker, dot, tag, label, file }, index) => {
+      const isCurrent = index === this.phase5CurrentSectorIndex;
+      const isRecovered = this.phase5RecoveredFiles.has(file.name);
+      marker.setFillStyle(isCurrent ? 0x183749 : 0x07101f, 1);
+      marker.setStrokeStyle(isCurrent ? 4 : 3, file.color, isCurrent ? 1 : 0.76);
+      dot.setAlpha(isRecovered ? 0.35 : 1);
+      tag.setFillStyle(isCurrent ? 0xfff2c2 : 0xf1f7ff, 0.95);
+      label.setColor(isRecovered ? "#35714a" : "#07101f");
+      label.setText(isRecovered ? `${file.name}` : file.name);
+    });
+  }
+
+  updateReadHeadPosition(animate = true, onComplete = null) {
+    const currentFile = this.phase5Files[this.phase5CurrentSectorIndex];
+    const position = this.getSectorPosition(currentFile);
+
+    const drawArm = () => {
+      const angle = Phaser.Math.Angle.Between(
+        PHASE5_HEAD_PIVOT.x,
+        PHASE5_HEAD_PIVOT.y,
+        this.phase5HeadTip.x,
+        this.phase5HeadTip.y,
+      );
+      const distance = Phaser.Math.Distance.Between(
+        PHASE5_HEAD_PIVOT.x,
+        PHASE5_HEAD_PIVOT.y,
+        this.phase5HeadTip.x,
+        this.phase5HeadTip.y,
+      );
+
+      this.phase5ArmGraphics.clear();
+      this.phase5ArmGraphics.lineStyle(13, 0x60758a, 1);
+      this.phase5ArmGraphics.lineBetween(
+        PHASE5_HEAD_PIVOT.x,
+        PHASE5_HEAD_PIVOT.y,
+        this.phase5HeadTip.x,
+        this.phase5HeadTip.y,
+      );
+      this.phase5ArmGraphics.lineStyle(3, 0xf1f7ff, 0.32);
+      this.phase5ArmGraphics.lineBetween(
+        PHASE5_HEAD_PIVOT.x,
+        PHASE5_HEAD_PIVOT.y,
+        this.phase5HeadTip.x,
+        this.phase5HeadTip.y,
+      );
+      this.phase5HeadTip.setRotation(angle);
+      this.phase5HeadTip.setDisplaySize(Math.min(60, distance * 0.32), 18);
+    };
+
+    if (!animate) {
+      this.phase5HeadTip.setPosition(position.x, position.y);
+      drawArm();
+      return;
+    }
+
+    this.tweens.add({
+      targets: this.phase5HeadTip,
+      x: position.x,
+      y: position.y,
+      duration: 340,
+      ease: "Sine.inOut",
+      onUpdate: drawArm,
+      onComplete: () => {
+        drawArm();
+        if (onComplete) {
+          onComplete();
+        }
+      },
+    });
+  }
+
+  updateStabilizeButton() {
+    if (!this.phase5StabilizeButton) {
+      return;
+    }
+
+    this.phase5StabilizeButton.setVisible(this.phase5IsVibrating);
+    if (this.phase5IsVibrating) {
+      this.phase5StabilizeButton.setEnabled(true);
+    } else {
+      this.phase5StabilizeButton.setEnabled(false);
+    }
+  }
+
+  showFeedback(message, type = "neutral") {
+    const colors = {
+      success: "#8ef28b",
+      error: "#ff9b78",
+      warning: "#ffd166",
+      neutral: "#8da2bd",
+    };
+    this.phase5FeedbackText.setText(message).setColor(colors[type] ?? colors.neutral);
+
+    this.tweens.killTweensOf(this.phase5FeedbackText);
+    this.tweens.add({
+      targets: this.phase5FeedbackText,
+      scale: type === "error" ? 1.03 : 1.02,
+      duration: 100,
+      yoyo: true,
+      ease: "Sine.inOut",
+    });
   }
 
   showSuccess(message) {
-    this.showMessage(message, "#8ef28b");
+    this.showFeedback(message, "success");
 
     const sector = this.phase5SectorObjects[this.phase5CurrentSectorIndex];
     this.tweens.add({
       targets: sector.container,
-      scale: 1.24,
-      duration: 140,
+      scale: 1.22,
+      duration: 130,
       yoyo: true,
       repeat: 1,
       ease: "Sine.inOut",
@@ -664,16 +845,17 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   showFailure(message) {
-    this.showMessage(message, "#ff9b78");
+    this.showFeedback(message, "error");
     this.cameras.main.shake(130, 0.002);
 
     this.tweens.add({
       targets: this.phase5SectorHighlight,
-      scale: 1.3,
+      scale: 1.28,
       alpha: 0.22,
-      duration: 95,
+      duration: 90,
       yoyo: true,
       repeat: 2,
+      ease: "Sine.inOut",
     });
   }
 
@@ -685,8 +867,8 @@ export default class Phase5Scene extends Phaser.Scene {
     this.phase5Stage = this.add.container(0, 0);
 
     const glow = this.add
-      .circle(480, 125, 78, 0xff8f70, 0.07)
-      .setStrokeStyle(2, 0xff8f70, 0.3);
+      .circle(480, 124, 80, 0xff8f70, 0.07)
+      .setStrokeStyle(2, 0xff8f70, 0.28);
     this.addToStage(glow);
     this.tweens.add({
       targets: glow,
@@ -712,24 +894,25 @@ export default class Phase5Scene extends Phaser.Scene {
 
     const panel = this.add.graphics();
     panel.fillStyle(0x0d1930, 0.97);
-    panel.fillRoundedRect(95, 191, 770, 220, 18);
+    panel.fillRoundedRect(96, 194, 768, 220, 18);
     panel.lineStyle(2, 0xff8f70, 0.42);
-    panel.strokeRoundedRect(95, 191, 770, 220, 18);
+    panel.strokeRoundedRect(96, 194, 768, 220, 18);
     this.addToStage(panel);
 
     this.addToStage(
       this.add
         .text(
           480,
-          278,
-          "Você aprendeu que o HD aumentou muito a capacidade de\narmazenamento dos computadores. Ele usa discos magnéticos\ngirando e uma cabeça de leitura mecânica. Apesar de poderoso,\npode ser danificado por impactos, quedas ou vibrações.",
+          280,
+          "Você aprendeu que o HD oferece grande capacidade de armazenamento,\nmas depende de partes mecânicas, como pratos giratórios e cabeça de leitura.\nPor isso, impactos e vibrações podem causar falhas.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "18px",
-            fontStyle: "600",
+            fontStyle: "700",
             color: "#dce8f5",
             align: "center",
             lineSpacing: 7,
+            wordWrap: { width: 690 },
           },
         )
         .setOrigin(0.5),
@@ -737,7 +920,7 @@ export default class Phase5Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 370, `PONTUAÇÃO FINAL: ${finalScore}`, {
+        .text(480, 372, `PONTUAÇÃO FINAL: ${finalScore}`, {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "12px",
           color: "#ffd166",
@@ -751,7 +934,7 @@ export default class Phase5Scene extends Phaser.Scene {
       310,
       "VOLTAR À LINHA DO TEMPO",
       () => this.returnToTimeline(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "9px" },
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
     );
     this.createButton(
       656,
@@ -772,91 +955,6 @@ export default class Phase5Scene extends Phaser.Scene {
     });
   }
 
-  updateTargetPanel() {
-    const targetFile = PHASE5_TARGET_FILES[this.phase5TargetIndex];
-    this.phase5TargetText.setText(targetFile);
-    this.phase5RecoveredText.setText(
-      `RECUPERADOS: ${this.phase5RecoveredFiles.size} / ${PHASE5_TARGET_FILES.length}`,
-    );
-  }
-
-  updateCurrentSectorVisual() {
-    const currentFile = PHASE5_FILES[this.phase5CurrentSectorIndex];
-    const position = this.getSectorPosition(currentFile);
-    this.phase5SectorHighlight.setPosition(position.x, position.y);
-    this.phase5CurrentSectorText.setText(`SETOR ATUAL: ${currentFile.name}`);
-    this.updateTargetPanel();
-
-    this.phase5SectorObjects.forEach(({ marker }, index) => {
-      const file = PHASE5_FILES[index];
-      marker.setFillStyle(index === this.phase5CurrentSectorIndex ? 0x183749 : 0x101f35, 1);
-      marker.setStrokeStyle(
-        index === this.phase5CurrentSectorIndex ? 4 : 3,
-        file.color,
-        index === this.phase5CurrentSectorIndex ? 1 : 0.72,
-      );
-    });
-  }
-
-  updateReadHeadPosition(animate = true, onComplete = null) {
-    const currentFile = PHASE5_FILES[this.phase5CurrentSectorIndex];
-    const position = this.getSectorPosition(currentFile);
-
-    const drawArm = () => {
-      const angle = Phaser.Math.Angle.Between(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-      const distance = Phaser.Math.Distance.Between(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-
-      this.phase5ArmGraphics.clear();
-      this.phase5ArmGraphics.lineStyle(13, 0x60758a, 1);
-      this.phase5ArmGraphics.lineBetween(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-      this.phase5ArmGraphics.lineStyle(3, 0xf1f7ff, 0.28);
-      this.phase5ArmGraphics.lineBetween(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-      this.phase5HeadTip.setRotation(angle);
-      this.phase5HeadTip.setDisplaySize(Math.min(56, distance * 0.3), 17);
-    };
-
-    if (!animate) {
-      this.phase5HeadTip.setPosition(position.x, position.y);
-      drawArm();
-      return;
-    }
-
-    this.tweens.add({
-      targets: this.phase5HeadTip,
-      x: position.x,
-      y: position.y,
-      duration: 360,
-      ease: "Sine.inOut",
-      onUpdate: drawArm,
-      onComplete: () => {
-        drawArm();
-        if (onComplete) {
-          onComplete();
-        }
-      },
-    });
-  }
-
   getSectorPosition(file) {
     const radians = Phaser.Math.DegToRad(file.angle);
     return {
@@ -866,7 +964,7 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   createRecoverySparkles(sectorIndex) {
-    const file = PHASE5_FILES[sectorIndex];
+    const file = this.phase5Files[sectorIndex];
     const position = this.getSectorPosition(file);
     const globalX = PHASE5_DRIVE_POSITION.x + position.x;
     const globalY = PHASE5_DRIVE_POSITION.y + position.y;
@@ -904,19 +1002,19 @@ export default class Phase5Scene extends Phaser.Scene {
   createIntroHardDrive(x, y) {
     const hd = this.add.graphics();
     hd.fillStyle(0x13283a, 1);
-    hd.fillRoundedRect(x - 98, y - 58, 196, 116, 18);
+    hd.fillRoundedRect(x - 105, y - 62, 210, 124, 16);
     hd.lineStyle(3, 0xff8f70, 0.74);
-    hd.strokeRoundedRect(x - 98, y - 58, 196, 116, 18);
+    hd.strokeRoundedRect(x - 105, y - 62, 210, 124, 16);
     hd.fillStyle(0xb7c9d6, 1);
-    hd.fillCircle(x - 22, y, 45);
+    hd.fillCircle(x - 26, y, 48);
     hd.lineStyle(4, 0x62e7f2, 0.28);
-    hd.strokeCircle(x - 22, y, 31);
+    hd.strokeCircle(x - 26, y, 33);
     hd.fillStyle(0x0b1627, 1);
-    hd.fillCircle(x - 22, y, 12);
+    hd.fillCircle(x - 26, y, 12);
     hd.lineStyle(7, 0x60758a, 1);
-    hd.lineBetween(x + 42, y + 36, x + 5, y + 5);
+    hd.lineBetween(x + 46, y + 38, x + 5, y + 5);
     hd.fillStyle(0xffd166, 1);
-    hd.fillCircle(x + 4, y + 5, 5);
+    hd.fillCircle(x + 5, y + 5, 5);
     this.addToStage(hd);
   }
 
@@ -943,7 +1041,25 @@ export default class Phase5Scene extends Phaser.Scene {
       this.phase5ForwardButton,
       this.phase5ReadButton,
       this.phase5StabilizeButton,
-    ].forEach((button) => button.background.disableInteractive());
+    ].forEach((button) => {
+      if (button?.setEnabled) {
+        button.setEnabled(false);
+      } else if (button?.background) {
+        button.background.disableInteractive();
+      }
+    });
+  }
+
+  stopVibrationTweens() {
+    if (this.phase5VibrationTween) {
+      this.phase5VibrationTween.stop();
+      this.phase5VibrationTween = null;
+    }
+
+    if (this.phase5VibrationPulse) {
+      this.phase5VibrationPulse.stop();
+      this.phase5VibrationPulse = null;
+    }
   }
 
   restartPhase() {
@@ -965,7 +1081,7 @@ export default class Phase5Scene extends Phaser.Scene {
 
   createBackLink() {
     const text = this.add
-      .text(38, 29, "← LINHA DO TEMPO", {
+      .text(38, 31, "< LINHA DO TEMPO", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "14px",
         fontStyle: "800",
@@ -985,10 +1101,7 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   clearStage() {
-    if (this.phase5VibrationTween) {
-      this.phase5VibrationTween.stop();
-      this.phase5VibrationTween = null;
-    }
+    this.stopVibrationTweens();
 
     if (this.phase5Stage) {
       this.phase5Stage.destroy(true);
