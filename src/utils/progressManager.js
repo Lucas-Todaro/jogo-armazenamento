@@ -5,6 +5,7 @@ function createDefaultProgress() {
   return {
     completedPhases: [],
     unlockedPhase: 1,
+    phaseScores: {},
   };
 }
 
@@ -45,10 +46,24 @@ function normalizeProgress(progress) {
     Math.max(savedUnlockedPhase, nextSequentialPhase),
     JORNADA_DO_BIT_TOTAL_PHASES,
   );
+  const phaseScores = {};
+  const savedPhaseScores =
+    progress.phaseScores && typeof progress.phaseScores === "object"
+      ? progress.phaseScores
+      : {};
+
+  for (let phase = 1; phase <= JORNADA_DO_BIT_TOTAL_PHASES; phase += 1) {
+    const score = Number(savedPhaseScores[phase]);
+
+    if (Number.isFinite(score)) {
+      phaseScores[phase] = Math.round(Math.min(Math.max(score, 0), 100));
+    }
+  }
 
   return {
     completedPhases: sequentialCompletedPhases,
     unlockedPhase,
+    phaseScores,
   };
 }
 
@@ -122,6 +137,54 @@ export function completePhase(phaseNumber) {
   }
 
   saveProgress(progress);
+}
+
+export function savePhaseScore(phaseNumber, score) {
+  const normalizedPhase = Number(phaseNumber);
+  const normalizedScore = Number(score);
+
+  if (
+    !Number.isInteger(normalizedPhase) ||
+    normalizedPhase < 1 ||
+    normalizedPhase > JORNADA_DO_BIT_TOTAL_PHASES ||
+    !Number.isFinite(normalizedScore)
+  ) {
+    return;
+  }
+
+  const progress = getProgress();
+
+  if (!progress.completedPhases.includes(normalizedPhase)) {
+    return;
+  }
+
+  const safeScore = Math.round(Math.min(Math.max(normalizedScore, 0), 100));
+  const previousScore = Number(progress.phaseScores[normalizedPhase]) || 0;
+  progress.phaseScores[normalizedPhase] = Math.max(previousScore, safeScore);
+  saveProgress(progress);
+}
+
+export function getPhaseScore(phaseNumber) {
+  const normalizedPhase = Number(phaseNumber);
+
+  if (
+    !Number.isInteger(normalizedPhase) ||
+    normalizedPhase < 1 ||
+    normalizedPhase > JORNADA_DO_BIT_TOTAL_PHASES
+  ) {
+    return 0;
+  }
+
+  return getProgress().phaseScores[normalizedPhase] || 0;
+}
+
+export function getTotalScore() {
+  const progress = getProgress();
+
+  return Object.values(progress.phaseScores).reduce(
+    (total, score) => total + score,
+    0,
+  );
 }
 
 export function isPhaseUnlocked(phaseNumber) {

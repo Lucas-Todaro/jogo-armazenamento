@@ -1,4 +1,8 @@
-import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+import {
+  completePhase,
+  isPhaseUnlocked,
+  savePhaseScore,
+} from "../utils/progressManager.js";
 import {
   createRoundedPanel,
   createStandardButton,
@@ -1151,6 +1155,7 @@ export default class Phase4Scene extends Phaser.Scene {
 
   showConclusion() {
     completePhase(4);
+    savePhaseScore(4, this.phase4Score);
 
     const finalScore = this.phase4Score;
     this.clearStage();
@@ -1332,6 +1337,8 @@ export default class Phase4Scene extends Phaser.Scene {
   }
 
   clearStage() {
+    this.tweens.killAll();
+
     if (this.phase4Stage) {
       this.phase4Stage.destroy(true);
       this.phase4Stage = null;

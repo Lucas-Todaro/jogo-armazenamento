@@ -1,4 +1,8 @@
-import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+import {
+  completePhase,
+  isPhaseUnlocked,
+  savePhaseScore,
+} from "../utils/progressManager.js";
 import { createStandardButton, drawRetroBackground } from "../utils/visualHelpers.js";
 
 const PHASE5_STARTING_SCORE = 100;
@@ -185,20 +189,55 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   setupRandomChallenge() {
-    const shuffledFiles = Phaser.Utils.Array.Shuffle([...PHASE5_FILE_POOL]);
+    const previousSignature = this.phase5ChallengeSignature;
     const slotCount = PHASE5_SECTOR_SLOTS.length;
+
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const shuffledFiles = Phaser.Utils.Array.Shuffle([
+        ...PHASE5_FILE_POOL,
+      ]);
+      const files = PHASE5_SECTOR_SLOTS.map((slot, index) => ({
+        ...slot,
+        name: shuffledFiles[index],
+        sector: index + 1,
+      }));
+      const targetFiles = Phaser.Utils.Array.Shuffle(
+        files.map((file) => file.name),
+      ).slice(0, PHASE5_TARGET_COUNT);
+      const signature = `${files
+        .map((file) => file.name)
+        .join("|")}::${targetFiles.join("|")}`;
+
+      if (signature !== previousSignature) {
+        this.phase5Files = files;
+        this.phase5TargetFiles = targetFiles;
+        this.phase5ChallengeSignature = signature;
+        this.phase5TargetIndex = 0;
+        this.phase5CurrentSectorIndex = Phaser.Math.Between(
+          0,
+          slotCount - 1,
+        );
+        this.phase5NextVibrationAt = Phaser.Math.Between(3, 5);
+        return;
+      }
+    }
 
     this.phase5Files = PHASE5_SECTOR_SLOTS.map((slot, index) => ({
       ...slot,
-      name: shuffledFiles[index],
+      name: PHASE5_FILE_POOL[(index + 1) % PHASE5_FILE_POOL.length],
       sector: index + 1,
     }));
-    this.phase5TargetFiles = Phaser.Utils.Array.Shuffle(
-      this.phase5Files.map((file) => file.name),
-    ).slice(0, PHASE5_TARGET_COUNT);
+    this.phase5TargetFiles = [
+      this.phase5Files[1].name,
+      this.phase5Files[4].name,
+      this.phase5Files[7].name,
+    ];
+    this.phase5ChallengeSignature = `${this.phase5Files
+      .map((file) => file.name)
+      .join("|")}::${this.phase5TargetFiles.join("|")}`;
     this.phase5TargetIndex = 0;
-    this.phase5CurrentSectorIndex = Phaser.Math.Between(0, slotCount - 1);
-    this.phase5NextVibrationAt = Phaser.Math.Between(3, 5);
+    this.phase5CurrentSectorIndex = 0;
+    this.phase5NextVibrationAt = 4;
   }
 
   createObjectivePanel() {
@@ -237,8 +276,8 @@ export default class Phase5Scene extends Phaser.Scene {
 
     this.createDriveShell();
     this.createDiskPlatter();
-    this.createSectors();
     this.createReadHead();
+    this.createSectors();
 
     this.phase5VibrationBanner = this.add.container(0, -182).setVisible(false);
     const bannerBg = this.add.graphics();
@@ -341,15 +380,28 @@ export default class Phase5Scene extends Phaser.Scene {
 
     this.phase5Files.forEach((file, index) => {
       const position = this.getSectorPosition(file);
-      const sectorContainer = this.add.container(position.x, position.y);
-      const labelY = position.y > 38 ? -30 : 31;
+      const sectorContainer = this.add
+        .container(position.x, position.y)
+        .setDepth(2);
+      const centerOffsetX = position.x - PHASE5_PLATTER_CENTER.x;
+      const centerOffsetY = position.y - PHASE5_PLATTER_CENTER.y;
+      const distance = Math.hypot(centerOffsetX, centerOffsetY) || 1;
+      const labelX = (centerOffsetX / distance) * 30;
+      const labelY = (centerOffsetY / distance) * 30;
       const marker = this.add
         .circle(0, 0, 17, 0x07101f, 1)
         .setStrokeStyle(3, file.color, 0.9);
       const dot = this.add.circle(0, 0, 5, file.color, 1);
-      const tag = this.add.rectangle(0, labelY, 88, 20, 0xf1f7ff, 0.94);
+      const tag = this.add.rectangle(
+        labelX,
+        labelY,
+        92,
+        20,
+        0xf1f7ff,
+        0.96,
+      );
       const label = this.add
-        .text(0, labelY, file.name, {
+        .text(labelX, labelY, file.name, {
           fontFamily: '"Nunito", sans-serif',
           fontSize: "10px",
           fontStyle: "900",
@@ -861,6 +913,7 @@ export default class Phase5Scene extends Phaser.Scene {
 
   showConclusion() {
     completePhase(5);
+    savePhaseScore(5, this.phase5Score);
 
     const finalScore = this.phase5Score;
     this.clearStage();
@@ -1102,6 +1155,7 @@ export default class Phase5Scene extends Phaser.Scene {
 
   clearStage() {
     this.stopVibrationTweens();
+    this.tweens.killAll();
 
     if (this.phase5Stage) {
       this.phase5Stage.destroy(true);

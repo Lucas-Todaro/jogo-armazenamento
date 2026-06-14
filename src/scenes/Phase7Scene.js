@@ -1,4 +1,9 @@
-import { completePhase, isPhaseUnlocked } from "../utils/progressManager.js";
+import {
+  completePhase,
+  getTotalScore,
+  isPhaseUnlocked,
+  savePhaseScore,
+} from "../utils/progressManager.js";
 import {
   createRoundedPanel,
   createStandardButton,
@@ -1528,8 +1533,10 @@ export default class Phase7Scene extends Phaser.Scene {
 
   showFinalConclusion() {
     completePhase(7);
+    savePhaseScore(7, this.phase7Score);
 
     const finalScore = this.phase7Score;
+    const totalScore = getTotalScore();
     this.clearStage();
     this.phase7Stage = this.add.container(0, 0);
 
@@ -1611,11 +1618,13 @@ export default class Phase7Scene extends Phaser.Scene {
         .text(
           480,
           377,
-          `PONTUAÇÃO DA FASE: ${finalScore}`,
+          `PONTUAÇÃO DA FASE: ${finalScore}\nTOTAL DA JORNADA: ${totalScore} / 700`,
           {
             fontFamily: '"Press Start 2P", monospace',
-            fontSize: "12px",
+            fontSize: "10px",
             color: "#ffd166",
+            align: "center",
+            lineSpacing: 8,
           },
         )
         .setOrigin(0.5),
@@ -1826,6 +1835,7 @@ export default class Phase7Scene extends Phaser.Scene {
       this.phase7ConnectionTween.stop();
       this.phase7ConnectionTween = null;
     }
+    this.tweens.killAll();
 
     if (this.phase7Stage) {
       this.phase7Stage.destroy(true);
