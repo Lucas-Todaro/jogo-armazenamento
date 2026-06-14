@@ -6,17 +6,40 @@ import {
 } from "../utils/visualHelpers.js";
 
 const PHASE4_STARTING_SCORE = 100;
-const PHASE4_DIRT_SPOTS = [
-  { x: -72, y: -54, size: 17 },
-  { x: 62, y: -68, size: 15 },
-  { x: -82, y: 58, size: 16 },
-  { x: 76, y: 48, size: 18 },
+const PHASE4_READ_PENALTY = 10;
+const PHASE4_SCRATCH_PENALTY = 5;
+const PHASE4_MIN_SECTORS = 6;
+const PHASE4_MAX_SECTORS = 8;
+
+const PHASE4_SECTOR_SLOTS = [
+  { id: "north-west", x: -73, y: -87 },
+  { id: "north", x: 3, y: -111 },
+  { id: "north-east", x: 82, y: -76 },
+  { id: "east", x: 111, y: -4 },
+  { id: "south-east", x: 78, y: 77 },
+  { id: "south", x: 4, y: 109 },
+  { id: "south-west", x: -82, y: 76 },
+  { id: "west", x: -111, y: -5 },
+  { id: "inner-north-west", x: -47, y: -40 },
+  { id: "inner-north-east", x: 49, y: -39 },
+  { id: "inner-south-east", x: 48, y: 42 },
+  { id: "inner-south-west", x: -48, y: 42 },
 ];
-const PHASE4_SCRATCHES = [
-  { x: -34, y: -82, length: 58, angle: 0.45 },
-  { x: 62, y: 8, length: 72, angle: -0.7 },
-  { x: -30, y: 70, length: 66, angle: 0.18 },
+
+const PHASE4_SCRATCH_SLOTS = [
+  { id: "scratch-a", x: -52, y: -70, length: 64, angle: 0.42 },
+  { id: "scratch-b", x: 62, y: -18, length: 76, angle: -0.68 },
+  { id: "scratch-c", x: -34, y: 75, length: 70, angle: 0.2 },
+  { id: "scratch-d", x: 35, y: 72, length: 58, angle: -0.34 },
+  { id: "scratch-e", x: -82, y: 9, length: 60, angle: 0.78 },
+  { id: "scratch-f", x: 34, y: -84, length: 56, angle: 0.12 },
 ];
+
+const PHASE4_DISC = {
+  x: 352,
+  y: 274,
+  radius: 142,
+};
 
 export default class Phase4Scene extends Phaser.Scene {
   constructor() {
@@ -60,28 +83,30 @@ export default class Phase4Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    const panel = createRoundedPanel(this, 480, 278, 780, 374, {
-      stroke: 0xc49cff,
-      strokeAlpha: 0.46,
-      radius: 20,
-    });
-    this.addToStage(panel);
+    this.addToStage(
+      createRoundedPanel(this, 480, 278, 780, 374, {
+        stroke: 0xc49cff,
+        strokeAlpha: 0.46,
+        radius: 20,
+      }),
+    );
 
-    this.createIntroDisc(480, 150);
+    this.createIntroDisc(480, 151);
 
     this.addToStage(
       this.add
         .text(
           480,
-          295,
-          "Com os CDs e DVDs, os dados passaram a ser armazenados em\ndiscos ópticos. Um laser lia pequenas marcas na superfície\ndo disco para acessar músicas, vídeos, jogos,\nprogramas e arquivos.",
+          298,
+          "CDs e DVDs armazenam dados em discos ópticos. Um laser lê\npequenas marcas na superfície para acessar arquivos,\nmúsicas, vídeos e programas.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "19px",
-            fontStyle: "600",
+            fontStyle: "700",
             color: "#dce8f5",
             align: "center",
             lineSpacing: 6,
+            wordWrap: { width: 710 },
           },
         )
         .setOrigin(0.5),
@@ -91,12 +116,12 @@ export default class Phase4Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          377,
-          "O desafio era proteger o disco: arranhões e sujeira\npodiam atrapalhar a leitura dos dados.",
+          376,
+          "Limpe a sujeira do disco e evite os danos\npara concluir a leitura.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "18px",
-            fontStyle: "800",
+            fontStyle: "900",
             color: "#ffd166",
             align: "center",
             lineSpacing: 5,
@@ -122,17 +147,19 @@ export default class Phase4Scene extends Phaser.Scene {
     this.phase4DiscoveredScratches = new Set();
     this.phase4IsReading = false;
     this.phase4IsComplete = false;
+    this.phase4SectorObjects = new Map();
     this.phase4DirtObjects = [];
     this.phase4ScratchObjects = [];
+    this.setupRandomChallenge();
 
     this.clearStage();
     this.phase4Stage = this.add.container(0, 0);
 
     this.addToStage(
       this.add
-        .text(480, 29, "LEITOR ÓPTICO", {
+        .text(480, 29, "FASE 4: LEITURA ÓPTICA", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "16px",
+          fontSize: "14px",
           color: "#c49cff",
         })
         .setOrigin(0.5),
@@ -147,26 +174,18 @@ export default class Phase4Scene extends Phaser.Scene {
       .setOrigin(1, 0.5);
     this.addToStage(this.phase4ScoreText);
 
-    this.createMissionPanel();
+    this.createObjectivePanel();
+    this.createDiscArea();
     this.createDisc();
-    this.createLaserReader();
-    this.createDirtAndScratches();
-    this.createEducationBox();
+    this.createSectors();
+    this.createScratches();
+    this.createDirt();
+    this.createLaser();
+    this.createSidePanel();
     this.createControls();
-    this.createReadinessIndicator();
-
-    this.phase4MessageText = this.add
-      .text(480, 505, "Clique nas sujeiras para limpar os setores importantes.", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "15px",
-        fontStyle: "700",
-        color: "#8da2bd",
-        align: "center",
-        wordWrap: { width: 860 },
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase4MessageText);
+    this.createFeedbackArea();
     this.createBackLink();
+    this.updateReadiness();
 
     this.phase4Stage.setAlpha(0);
     this.tweens.add({
@@ -177,26 +196,176 @@ export default class Phase4Scene extends Phaser.Scene {
     });
   }
 
-  createMissionPanel() {
-    const panel = createRoundedPanel(this, 350, 73, 630, 56, {
-      fill: 0x101f35,
-      stroke: 0xffd166,
-      strokeAlpha: 0.38,
-      radius: 12,
-      shadow: false,
-    });
-    this.addToStage(panel);
+  setupRandomChallenge() {
+    const previousSignature = this.phase4ChallengeSignature;
+
+    for (let attempt = 0; attempt < 150; attempt += 1) {
+      const sectorCount = Phaser.Math.Between(
+        PHASE4_MIN_SECTORS,
+        PHASE4_MAX_SECTORS,
+      );
+      const importantCount = Phaser.Math.Between(3, 4);
+      const selectedSlots = this.shuffleItems(PHASE4_SECTOR_SLOTS).slice(
+        0,
+        sectorCount,
+      );
+      const importantIds = new Set(
+        this.shuffleItems(selectedSlots)
+          .slice(0, importantCount)
+          .map((slot) => slot.id),
+      );
+      const sectors = selectedSlots.map((slot, index) => ({
+        ...slot,
+        number: index + 1,
+        important: importantIds.has(slot.id),
+      }));
+
+      const importantSectors = sectors.filter((sector) => sector.important);
+      const optionalSectors = sectors.filter((sector) => !sector.important);
+      const importantDirtCount = Phaser.Math.Between(
+        Math.max(2, importantCount - 1),
+        importantCount,
+      );
+      const optionalDirtCount = Phaser.Math.Between(
+        1,
+        Math.min(2, optionalSectors.length),
+      );
+      const dirtySectors = [
+        ...this.shuffleItems(importantSectors).slice(0, importantDirtCount),
+        ...this.shuffleItems(optionalSectors).slice(0, optionalDirtCount),
+      ];
+      const dirtSpots = dirtySectors.map((sector, index) => ({
+        id: `dirt-${sector.id}`,
+        sectorId: sector.id,
+        x: sector.x + Phaser.Math.Between(-3, 3),
+        y: sector.y + Phaser.Math.Between(-3, 3),
+        size: Phaser.Math.Between(13, 17),
+        important: sector.important,
+        index,
+      }));
+
+      const scratchCount = Phaser.Math.Between(1, 2);
+      const scratches = this.pickScratchSlots(dirtSpots, scratchCount);
+      const scanDirection = Phaser.Math.Between(0, 1) === 0 ? "left" : "right";
+      const signature = [
+        sectors
+          .map(
+            (sector) =>
+              `${sector.id}:${sector.important ? "I" : "N"}`,
+          )
+          .sort()
+          .join("|"),
+        dirtSpots
+          .map((dirt) => `${dirt.sectorId}:${dirt.size}`)
+          .sort()
+          .join("|"),
+        scratches
+          .map((scratch) => scratch.id)
+          .sort()
+          .join("|"),
+        scanDirection,
+      ].join("::");
+
+      if (signature !== previousSignature) {
+        this.phase4Sectors = sectors;
+        this.phase4DirtSpots = dirtSpots;
+        this.phase4Scratches = scratches;
+        this.phase4ScanDirection = scanDirection;
+        this.phase4ChallengeSignature = signature;
+        return;
+      }
+    }
+
+    this.createFallbackChallenge();
+  }
+
+  pickScratchSlots(dirtSpots, scratchCount) {
+    const preferredSlots = this.shuffleItems(PHASE4_SCRATCH_SLOTS).filter(
+      (scratch) =>
+        dirtSpots.every(
+          (dirt) =>
+            Phaser.Math.Distance.Between(
+              scratch.x,
+              scratch.y,
+              dirt.x,
+              dirt.y,
+            ) > 38,
+        ),
+    );
+    const chosenSlots = preferredSlots.slice(0, scratchCount);
+
+    if (chosenSlots.length < scratchCount) {
+      const chosenIds = new Set(chosenSlots.map((scratch) => scratch.id));
+      const remainingSlots = this.shuffleItems(PHASE4_SCRATCH_SLOTS).filter(
+        (scratch) => !chosenIds.has(scratch.id),
+      );
+      chosenSlots.push(
+        ...remainingSlots.slice(0, scratchCount - chosenSlots.length),
+      );
+    }
+
+    return chosenSlots;
+  }
+
+  createFallbackChallenge() {
+    const sectors = PHASE4_SECTOR_SLOTS.slice(0, 7).map((slot, index) => ({
+      ...slot,
+      number: index + 1,
+      important: [0, 2, 4, 6].includes(index),
+    }));
+
+    this.phase4Sectors = sectors;
+    this.phase4DirtSpots = [sectors[0], sectors[2], sectors[4], sectors[1]].map(
+      (sector, index) => ({
+        id: `dirt-${sector.id}`,
+        sectorId: sector.id,
+        x: sector.x,
+        y: sector.y,
+        size: 15,
+        important: sector.important,
+        index,
+      }),
+    );
+    this.phase4Scratches = [PHASE4_SCRATCH_SLOTS[2]];
+    this.phase4ScanDirection = "left";
+    this.phase4ChallengeSignature = "fallback-phase-4";
+  }
+
+  shuffleItems(items) {
+    const shuffled = [...items];
+
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Phaser.Math.Between(0, index);
+      [shuffled[index], shuffled[swapIndex]] = [
+        shuffled[swapIndex],
+        shuffled[index],
+      ];
+    }
+
+    return shuffled;
+  }
+
+  createObjectivePanel() {
+    this.addToStage(
+      createRoundedPanel(this, 480, 75, 740, 50, {
+        fill: 0x101f35,
+        stroke: 0xffd166,
+        strokeAlpha: 0.38,
+        radius: 12,
+        shadow: false,
+      }),
+    );
 
     this.addToStage(
       this.add
         .text(
-          350,
-          73,
-          "MISSÃO: prepare o disco para o laser ler os dados importantes",
+          480,
+          75,
+          "Objetivo: limpe os setores importantes para o laser ler os dados.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "16px",
-            fontStyle: "800",
+            fontStyle: "900",
             color: "#ffd166",
             align: "center",
           },
@@ -205,127 +374,240 @@ export default class Phase4Scene extends Phaser.Scene {
     );
   }
 
+  createDiscArea() {
+    this.addToStage(
+      createRoundedPanel(this, 350, 280, 610, 330, {
+        fill: 0x0b1729,
+        stroke: 0xc49cff,
+        strokeAlpha: 0.32,
+        radius: 16,
+      }),
+    );
+
+    this.addToStage(
+      this.add
+        .text(350, 129, "SUPERFÍCIE DO DISCO", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
+          color: "#c49cff",
+        })
+        .setOrigin(0.5),
+    );
+  }
+
   createDisc() {
-    this.phase4DiscContainer = this.add.container(342, 264);
+    this.phase4DiscContainer = this.add.container(
+      PHASE4_DISC.x,
+      PHASE4_DISC.y,
+    );
     this.addToStage(this.phase4DiscContainer);
 
     const disc = this.add.graphics();
-    disc.fillStyle(0x091522, 0.4);
-    disc.fillCircle(7, 9, 142);
-    disc.fillStyle(0xb6c8d6, 1);
-    disc.fillCircle(0, 0, 138);
+    disc.fillStyle(0x030713, 0.42);
+    disc.fillCircle(7, 9, PHASE4_DISC.radius + 2);
+    disc.fillStyle(0xbccbd8, 1);
+    disc.fillCircle(0, 0, PHASE4_DISC.radius);
 
     const rings = [
-      { radius: 128, color: 0x62e7f2, alpha: 0.32, width: 5 },
-      { radius: 108, color: 0xc49cff, alpha: 0.32, width: 9 },
-      { radius: 84, color: 0xffd166, alpha: 0.22, width: 7 },
-      { radius: 62, color: 0x8ef28b, alpha: 0.2, width: 6 },
+      { radius: 130, color: 0x62e7f2, alpha: 0.34, width: 5 },
+      { radius: 111, color: 0xc49cff, alpha: 0.32, width: 8 },
+      { radius: 88, color: 0xffd166, alpha: 0.22, width: 7 },
+      { radius: 65, color: 0x8ef28b, alpha: 0.2, width: 6 },
     ];
     rings.forEach(({ radius, color, alpha, width }) => {
       disc.lineStyle(width, color, alpha);
       disc.strokeCircle(0, 0, radius);
     });
 
-    disc.lineStyle(3, 0xf1f7ff, 0.42);
-    disc.strokeCircle(0, 0, 138);
+    disc.lineStyle(3, 0xf1f7ff, 0.48);
+    disc.strokeCircle(0, 0, PHASE4_DISC.radius);
     disc.fillStyle(0x0b1627, 1);
     disc.fillCircle(0, 0, 29);
-    disc.lineStyle(6, 0x8799a8, 0.8);
+    disc.lineStyle(6, 0x8799a8, 0.85);
     disc.strokeCircle(0, 0, 29);
 
-    disc.fillStyle(0xffffff, 0.2);
+    disc.fillStyle(0xffffff, 0.22);
     disc.beginPath();
-    disc.moveTo(-102, -84);
+    disc.moveTo(-108, -89);
     disc.lineTo(-20, -20);
-    disc.lineTo(-52, 17);
-    disc.lineTo(-123, -46);
+    disc.lineTo(-53, 18);
+    disc.lineTo(-128, -48);
     disc.closePath();
     disc.fillPath();
 
-    disc.fillStyle(0x62e7f2, 0.11);
+    disc.fillStyle(0x62e7f2, 0.12);
     disc.beginPath();
-    disc.moveTo(90, -91);
+    disc.moveTo(92, -96);
     disc.lineTo(30, -26);
-    disc.lineTo(62, 10);
-    disc.lineTo(123, -48);
+    disc.lineTo(64, 12);
+    disc.lineTo(127, -51);
     disc.closePath();
     disc.fillPath();
-
     this.phase4DiscContainer.add(disc);
 
     this.phase4DiscGlow = this.add
-      .circle(342, 264, 150, 0xc49cff, 0)
+      .circle(
+        PHASE4_DISC.x,
+        PHASE4_DISC.y,
+        PHASE4_DISC.radius + 10,
+        0xc49cff,
+        0,
+      )
       .setStrokeStyle(4, 0xc49cff, 0);
     this.addToStage(this.phase4DiscGlow);
+  }
 
-    this.tweens.add({
-      targets: this.phase4DiscContainer,
-      angle: 360,
-      duration: 45000,
-      repeat: -1,
-      ease: "Linear",
+  createSectors() {
+    this.phase4Sectors.forEach((sector) => {
+      const sectorContainer = this.add.container(sector.x, sector.y);
+      const halo = this.add.circle(
+        0,
+        0,
+        sector.important ? 22 : 16,
+        sector.important ? 0xffd166 : 0x62e7f2,
+        sector.important ? 0.14 : 0.08,
+      );
+      const marker = this.add
+        .circle(
+          0,
+          0,
+          sector.important ? 13 : 10,
+          sector.important ? 0x493d1c : 0x24495d,
+          0.96,
+        )
+        .setStrokeStyle(
+          sector.important ? 3 : 2,
+          sector.important ? 0xffd166 : 0x62e7f2,
+          sector.important ? 0.95 : 0.7,
+        );
+      const dataPoint = this.add.circle(
+        0,
+        0,
+        4,
+        sector.important ? 0xffd166 : 0x62e7f2,
+        1,
+      );
+      const number = this.add
+        .text(0, sector.important ? -31 : -25, String(sector.number), {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "5px",
+          color: sector.important ? "#493d1c" : "#24495d",
+          backgroundColor: sector.important ? "#ffd166" : "#8ed8e8",
+          padding: { left: 3, right: 3, top: 2, bottom: 2 },
+        })
+        .setOrigin(0.5);
+
+      sectorContainer.add([halo, marker, dataPoint, number]);
+      this.phase4DiscContainer.add(sectorContainer);
+      this.phase4SectorObjects.set(sector.id, {
+        container: sectorContainer,
+        halo,
+        marker,
+        dataPoint,
+        number,
+        sector,
+      });
     });
   }
 
-  createLaserReader() {
-    const reader = this.add.graphics();
-    reader.fillStyle(0x15283b, 1);
-    reader.fillRoundedRect(137, 398, 410, 42, 10);
-    reader.lineStyle(2, 0x62e7f2, 0.5);
-    reader.strokeRoundedRect(137, 398, 410, 42, 10);
-    reader.fillStyle(0x60758a, 1);
-    reader.fillRoundedRect(295, 390, 94, 22, 5);
-    reader.fillStyle(0x0a111d, 1);
-    reader.fillCircle(342, 401, 8);
-    reader.fillStyle(0x62e7f2, 1);
-    reader.fillCircle(342, 401, 3);
-    this.addToStage(reader);
-
-    this.phase4LaserBeam = this.add
-      .rectangle(342, 392, 5, 250, 0x62e7f2, 0)
-      .setOrigin(0.5, 1)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    this.addToStage(this.phase4LaserBeam);
-
-    this.phase4LaserGlow = this.add
-      .rectangle(342, 392, 22, 250, 0x62e7f2, 0)
-      .setOrigin(0.5, 1)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    this.addToStage(this.phase4LaserGlow);
-
-    this.addToStage(
-      this.add
-        .text(342, 426, "UNIDADE LASER", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "7px",
-          color: "#62e7f2",
-        })
-        .setOrigin(0.5),
-    );
-  }
-
-  createDirtAndScratches() {
-    PHASE4_DIRT_SPOTS.forEach((spot, index) => {
-      const dirtContainer = this.add.container(spot.x, spot.y);
-      const stain = this.add.circle(0, 0, spot.size, 0x765a30, 0.88);
-      const stainEdge = this.add
-        .circle(0, 0, spot.size + 4, 0x4a351d, 0.22)
-        .setStrokeStyle(2, 0x382618, 0.65);
-      const speckOne = this.add.circle(-7, -4, 4, 0x3b291a, 0.8);
-      const speckTwo = this.add.circle(6, 5, 3, 0x4a321d, 0.8);
+  createScratches() {
+    this.phase4Scratches.forEach((scratch, index) => {
+      const scratchContainer = this.add.container(scratch.x, scratch.y);
+      const shadow = this.add
+        .rectangle(2, 2, scratch.length, 4, 0x26333d, 0.72)
+        .setRotation(scratch.angle);
+      const scratchLine = this.add
+        .rectangle(0, 0, scratch.length, 3, 0xe7edf2, 0.94)
+        .setRotation(scratch.angle);
+      const highlight = this.add
+        .rectangle(
+          -scratch.length * 0.08,
+          -2,
+          scratch.length * 0.7,
+          1,
+          0xffffff,
+          0.92,
+        )
+        .setRotation(scratch.angle);
+      const endMark = this.add
+        .rectangle(
+          scratch.length * 0.28,
+          1,
+          scratch.length * 0.22,
+          2,
+          0x8394a2,
+          0.8,
+        )
+        .setRotation(scratch.angle + 0.08);
       const hitArea = this.add
-        .circle(0, 0, spot.size + 18, 0xffffff, 0.001)
+        .rectangle(0, 0, scratch.length + 28, 26, 0xffffff, 0.001)
+        .setRotation(scratch.angle)
         .setInteractive({ useHandCursor: true });
 
-      dirtContainer.add([stainEdge, stain, speckOne, speckTwo, hitArea]);
+      scratchContainer.add([
+        shadow,
+        scratchLine,
+        highlight,
+        endMark,
+        hitArea,
+      ]);
+      this.phase4DiscContainer.add(scratchContainer);
+      hitArea.on("pointerdown", () => this.handleScratchClick(index));
+
+      this.phase4ScratchObjects.push({
+        container: scratchContainer,
+        scratchLine,
+        highlight,
+        hitArea,
+      });
+    });
+  }
+
+  createDirt() {
+    this.phase4DirtSpots.forEach((spot, index) => {
+      const dirtContainer = this.add.container(spot.x, spot.y);
+      const stainEdge = this.add
+        .circle(0, 0, spot.size + 5, 0x3c2919, 0.25)
+        .setStrokeStyle(2, 0x382618, 0.7);
+      const stain = this.add.circle(0, 0, spot.size, 0x76512d, 0.94);
+      const blobOne = this.add.circle(
+        -spot.size * 0.55,
+        3,
+        spot.size * 0.55,
+        0x654321,
+        0.88,
+      );
+      const blobTwo = this.add.circle(
+        spot.size * 0.52,
+        -3,
+        spot.size * 0.46,
+        0x8a6034,
+        0.9,
+      );
+      const speckOne = this.add.circle(-6, -6, 3, 0x332116, 0.9);
+      const speckTwo = this.add.circle(7, 5, 2.5, 0x422a17, 0.9);
+      const hitArea = this.add
+        .circle(0, 0, spot.size + 16, 0xffffff, 0.001)
+        .setInteractive({ useHandCursor: true });
+
+      dirtContainer.add([
+        stainEdge,
+        stain,
+        blobOne,
+        blobTwo,
+        speckOne,
+        speckTwo,
+        hitArea,
+      ]);
       this.phase4DiscContainer.add(dirtContainer);
 
       hitArea.on("pointerover", () => {
         if (!this.phase4IsComplete && !this.phase4IsReading) {
           this.tweens.add({
             targets: dirtContainer,
-            scale: 1.14,
+            scale: 1.13,
             duration: 100,
+            ease: "Sine.out",
           });
         }
       });
@@ -334,131 +616,213 @@ export default class Phase4Scene extends Phaser.Scene {
           targets: dirtContainer,
           scale: 1,
           duration: 100,
+          ease: "Sine.out",
         });
       });
       hitArea.on("pointerdown", () => this.cleanDirt(index));
 
-      this.phase4DirtObjects.push({ container: dirtContainer, hitArea });
-    });
-
-    PHASE4_SCRATCHES.forEach((scratch, index) => {
-      const scratchContainer = this.add.container(scratch.x, scratch.y);
-      const scratchLine = this.add
-        .rectangle(0, 0, scratch.length, 3, 0x34414d, 0.95)
-        .setRotation(scratch.angle);
-      const highlight = this.add
-        .rectangle(0, -2, scratch.length * 0.76, 1, 0xf1f7ff, 0.5)
-        .setRotation(scratch.angle);
-      const hitArea = this.add
-        .rectangle(0, 0, scratch.length + 36, 34, 0xffffff, 0.001)
-        .setRotation(scratch.angle)
-        .setInteractive({ useHandCursor: true });
-
-      scratchContainer.add([scratchLine, highlight, hitArea]);
-      this.phase4DiscContainer.add(scratchContainer);
-      hitArea.on("pointerdown", () => this.handleScratchClick(index));
-
-      this.phase4ScratchObjects.push({
-        container: scratchContainer,
-        scratchLine,
+      this.phase4DirtObjects.push({
+        container: dirtContainer,
         hitArea,
+        spot,
       });
-    });
-
-    this.phase4DirtObjects.forEach(({ container }) => {
-      this.phase4DiscContainer.bringToTop(container);
     });
   }
 
-  createEducationBox() {
-    const panel = createRoundedPanel(this, 792, 245, 250, 282, {
-      fill: 0x101f35,
-      stroke: 0x62e7f2,
-      strokeAlpha: 0.34,
-      radius: 16,
-    });
-    this.addToStage(panel);
+  createLaser() {
+    const reader = this.add.graphics();
+    reader.fillStyle(0x15283b, 1);
+    reader.fillRoundedRect(150, 407, 404, 40, 10);
+    reader.lineStyle(2, 0x62e7f2, 0.55);
+    reader.strokeRoundedRect(150, 407, 404, 40, 10);
+    reader.fillStyle(0x60758a, 1);
+    reader.fillRoundedRect(306, 398, 92, 22, 5);
+    reader.fillStyle(0x09121f, 1);
+    reader.fillCircle(352, 409, 8);
+    reader.fillStyle(0x62e7f2, 1);
+    reader.fillCircle(352, 409, 3);
+    this.addToStage(reader);
 
-    this.addToStage(
-      this.add
-        .text(792, 124, "MÍDIA ÓPTICA", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "9px",
-          color: "#62e7f2",
-        })
-        .setOrigin(0.5),
-    );
+    this.phase4LaserGlow = this.add
+      .rectangle(352, 405, 22, 262, 0x62e7f2, 0)
+      .setOrigin(0.5, 1)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.phase4LaserBeam = this.add
+      .rectangle(352, 405, 5, 262, 0x62e7f2, 0)
+      .setOrigin(0.5, 1)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.phase4LaserHead = this.add.circle(352, 409, 6, 0x62e7f2, 0.95);
+    this.addToStage([
+      this.phase4LaserGlow,
+      this.phase4LaserBeam,
+      this.phase4LaserHead,
+    ]);
 
     this.addToStage(
       this.add
         .text(
-          792,
-          250,
-          "CDs e DVDs armazenam dados\nem pequenas marcas na\nsuperfície, lidas por laser.\n\nTinham mais capacidade que\ndisquetes e eram usados para\nmúsicas, vídeos, jogos e\nprogramas.\n\nArranhões, poeira e sujeira\npodiam impedir a leitura.",
+          352,
+          435,
+          `UNIDADE LASER  ${this.phase4ScanDirection === "left" ? ">" : "<"}`,
           {
-            fontFamily: '"Nunito", sans-serif',
-            fontSize: "14px",
-            fontStyle: "600",
-            color: "#c7d7e8",
-            align: "center",
-            lineSpacing: 4,
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: "7px",
+            color: "#62e7f2",
           },
         )
         .setOrigin(0.5),
     );
   }
 
-  createControls() {
-    this.phase4ReadButton = this.createButton(
-      672,
-      421,
-      250,
-      "LER DISCO",
-      () => this.readDisc(),
-      { border: 0x8ef28b, hover: 0x246a69, fontSize: "10px" },
+  createSidePanel() {
+    this.addToStage(
+      createRoundedPanel(this, 785, 280, 270, 330, {
+        fill: 0x0b1729,
+        stroke: 0x62e7f2,
+        strokeAlpha: 0.32,
+        radius: 16,
+      }),
     );
 
     this.addToStage(
       this.add
-        .text(672, 459, "Clique diretamente nas manchas para limpá-las.", {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "12px",
-          fontStyle: "700",
-          color: "#6f849d",
-          align: "center",
-        })
-        .setOrigin(0.5),
-    );
-  }
-
-  createReadinessIndicator() {
-    const panel = createRoundedPanel(this, 572, 160, 178, 64, {
-      fill: 0x101f35,
-      stroke: 0xffd166,
-      strokeAlpha: 0.36,
-      radius: 12,
-      shadow: false,
-    });
-    this.addToStage(panel);
-
-    this.addToStage(
-      this.add
-        .text(572, 146, "SETORES IMPORTANTES", {
+        .text(785, 130, "STATUS DA LEITURA", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "8px",
-          color: "#ffd166",
+          color: "#62e7f2",
         })
         .setOrigin(0.5),
     );
 
     this.phase4ReadinessText = this.add
-      .text(572, 170, "LIMPOS: 0 / 4", {
+      .text(785, 162, "", {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: "8px",
-        color: "#ff9b78",
+        color: "#ffd166",
+        align: "center",
+        lineSpacing: 4,
       })
       .setOrigin(0.5);
     this.addToStage(this.phase4ReadinessText);
+
+    this.addToStage(
+      this.add
+        .text(785, 206, "LEGENDA", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "7px",
+          color: "#c49cff",
+        })
+        .setOrigin(0.5),
+    );
+
+    this.createLegendRow(785, 232, "important", "Anel amarelo: setor importante");
+    this.createLegendRow(785, 261, "dirt", "Mancha marrom: clique para limpar");
+    this.createLegendRow(785, 290, "scratch", "Risco claro: dano permanente");
+
+    this.addToStage(
+      createRoundedPanel(this, 785, 342, 230, 62, {
+        fill: 0x101f35,
+        stroke: 0xffd166,
+        strokeAlpha: 0.3,
+        radius: 12,
+        shadow: false,
+      }),
+    );
+
+    this.addToStage(
+      this.add
+        .text(
+          785,
+          342,
+          "Dica: o laser precisa de uma\nsuperfície limpa para ler os dados.",
+          {
+            fontFamily: '"Nunito", sans-serif',
+            fontSize: "12px",
+            fontStyle: "800",
+            color: "#dce8f5",
+            align: "center",
+            lineSpacing: 2,
+          },
+        )
+        .setOrigin(0.5),
+    );
+  }
+
+  createLegendRow(x, y, type, label) {
+    if (type === "important") {
+      this.addToStage(
+        this.add
+          .circle(x - 103, y, 8, 0x493d1c, 1)
+          .setStrokeStyle(3, 0xffd166, 1),
+      );
+    } else if (type === "dirt") {
+      this.addToStage(
+        this.add
+          .circle(x - 103, y, 9, 0x76512d, 1)
+          .setStrokeStyle(2, 0x382618, 0.8),
+      );
+    } else {
+      this.addToStage(
+        this.add.rectangle(x - 103, y, 19, 3, 0xe7edf2, 1).setRotation(-0.4),
+      );
+    }
+
+    this.addToStage(
+      this.add
+        .text(x - 85, y, label, {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "11px",
+          fontStyle: "800",
+          color: "#c7d7e8",
+        })
+        .setOrigin(0, 0.5),
+    );
+  }
+
+  createControls() {
+    this.phase4ReadButton = this.createButton(
+      785,
+      416,
+      230,
+      "LER DISCO",
+      () => this.readDisc(),
+      {
+        border: 0x8ef28b,
+        hover: 0x246a69,
+        fontSize: "10px",
+        height: 50,
+      },
+    );
+  }
+
+  createFeedbackArea() {
+    this.addToStage(
+      createRoundedPanel(this, 480, 503, 850, 36, {
+        fill: 0x091424,
+        stroke: 0x62e7f2,
+        strokeAlpha: 0.24,
+        radius: 10,
+        shadow: false,
+        highlight: false,
+      }),
+    );
+
+    this.phase4MessageText = this.add
+      .text(
+        480,
+        503,
+        "Clique nas manchas sobre os setores importantes.",
+        {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "14px",
+          fontStyle: "800",
+          color: "#8da2bd",
+          align: "center",
+          wordWrap: { width: 800 },
+        },
+      )
+      .setOrigin(0.5);
+    this.addToStage(this.phase4MessageText);
   }
 
   cleanDirt(index) {
@@ -476,31 +840,69 @@ export default class Phase4Scene extends Phaser.Scene {
 
     this.tweens.add({
       targets: dirt.container,
-      scale: 1.7,
+      scale: 1.65,
       alpha: 0,
-      angle: 40,
+      angle: 35,
       duration: 280,
       ease: "Sine.out",
       onComplete: () => dirt.container.setVisible(false),
     });
 
-    this.phase4ReadinessText
-      .setText(`LIMPOS: ${this.phase4CleanedDirt.size} / 4`)
-      .setColor(
-        this.phase4CleanedDirt.size === PHASE4_DIRT_SPOTS.length
-          ? "#8ef28b"
-          : "#ffd166",
-      );
-
-    this.showMessage(
-      "Sujeira removida! O laser consegue ler melhor essa área.",
-      "#8ef28b",
+    this.updateSectorVisual(dirt.spot.sectorId);
+    this.updateReadiness();
+    this.showFeedback(
+      dirt.spot.important
+        ? "Sujeira removida do setor importante."
+        : "Sujeira removida. Este setor era opcional.",
+      "success",
     );
-
     this.createCleaningSparkles(
-      342 + PHASE4_DIRT_SPOTS[index].x,
-      264 + PHASE4_DIRT_SPOTS[index].y,
+      PHASE4_DISC.x + dirt.spot.x,
+      PHASE4_DISC.y + dirt.spot.y,
     );
+  }
+
+  updateSectorVisual(sectorId) {
+    const sectorObject = this.phase4SectorObjects.get(sectorId);
+
+    if (!sectorObject?.sector.important) {
+      return;
+    }
+
+    const isClean = this.isImportantSectorClean(sectorId);
+    sectorObject.halo.setFillStyle(isClean ? 0x8ef28b : 0xffd166, 0.16);
+    sectorObject.marker
+      .setFillStyle(isClean ? 0x173d35 : 0x493d1c, 0.96)
+      .setStrokeStyle(3, isClean ? 0x8ef28b : 0xffd166, 0.95);
+    sectorObject.dataPoint.setFillStyle(isClean ? 0x8ef28b : 0xffd166, 1);
+    sectorObject.number
+      .setBackgroundColor(isClean ? "#8ef28b" : "#ffd166")
+      .setColor(isClean ? "#173d35" : "#493d1c");
+  }
+
+  updateReadiness() {
+    const importantSectors = this.phase4Sectors.filter(
+      (sector) => sector.important,
+    );
+    const cleanCount = importantSectors.filter((sector) =>
+      this.isImportantSectorClean(sector.id),
+    ).length;
+    const allClean = cleanCount === importantSectors.length;
+
+    importantSectors.forEach((sector) => this.updateSectorVisual(sector.id));
+    this.phase4ReadinessText
+      .setText(
+        `SETORES IMPORTANTES\nLIMPOS: ${cleanCount} / ${importantSectors.length}`,
+      )
+      .setColor(allClean ? "#8ef28b" : "#ffd166");
+  }
+
+  isImportantSectorClean(sectorId) {
+    const dirtIndex = this.phase4DirtSpots.findIndex(
+      (dirt) => dirt.sectorId === sectorId,
+    );
+
+    return dirtIndex === -1 || this.phase4CleanedDirt.has(dirtIndex);
   }
 
   createCleaningSparkles(x, y) {
@@ -510,6 +912,7 @@ export default class Phase4Scene extends Phaser.Scene {
       [-8, 13],
       [11, 11],
     ];
+
     offsets.forEach(([offsetX, offsetY], index) => {
       const sparkle = this.add
         .rectangle(
@@ -537,25 +940,37 @@ export default class Phase4Scene extends Phaser.Scene {
       return;
     }
 
-    if (!this.phase4DiscoveredScratches.has(index)) {
+    const wasAlreadyDiscovered =
+      this.phase4DiscoveredScratches.has(index);
+
+    if (wasAlreadyDiscovered) {
+      this.updateScore(-PHASE4_SCRATCH_PENALTY);
+    } else {
       this.phase4DiscoveredScratches.add(index);
-      this.updateScore(-5);
     }
 
     const scratch = this.phase4ScratchObjects[index];
     scratch.scratchLine.setFillStyle(0xff7b68, 1);
+    scratch.highlight.setFillStyle(0xffc0b3, 1);
+
     this.tweens.add({
       targets: scratch.container,
       scale: 1.18,
       duration: 90,
       yoyo: true,
       repeat: 2,
-      onComplete: () => scratch.scratchLine.setFillStyle(0x34414d, 0.95),
+      ease: "Sine.inOut",
+      onComplete: () => {
+        scratch.scratchLine.setFillStyle(0xe7edf2, 0.94);
+        scratch.highlight.setFillStyle(0xffffff, 0.92);
+      },
     });
 
-    this.showMessage(
-      "Arranhões podem danificar o disco e dificultar a leitura.",
-      "#ff9b78",
+    this.showFeedback(
+      wasAlreadyDiscovered
+        ? "O risco é permanente. Evite insistir: -5 pontos."
+        : "Arranhões podem prejudicar a leitura e não desaparecem.",
+      wasAlreadyDiscovered ? "error" : "warning",
     );
   }
 
@@ -565,42 +980,85 @@ export default class Phase4Scene extends Phaser.Scene {
     }
 
     this.phase4IsReading = true;
-    const hasRemainingDirt =
-      this.phase4CleanedDirt.size < PHASE4_DIRT_SPOTS.length;
+    const remainingImportantDirt = this.phase4DirtSpots.filter(
+      (dirt, index) =>
+        dirt.important && !this.phase4CleanedDirt.has(index),
+    );
+    const isSuccessful = remainingImportantDirt.length === 0;
 
-    this.animateLaserScan(!hasRemainingDirt, () => {
+    this.animateLaserScan(isSuccessful, () => {
       this.phase4IsReading = false;
-      if (hasRemainingDirt) {
-        this.showFailure();
-      } else {
+
+      if (isSuccessful) {
         this.showSuccess();
+      } else {
+        this.showFailure(remainingImportantDirt);
       }
     });
   }
 
   animateLaserScan(isSuccessful, onComplete) {
     const color = isSuccessful ? 0x8ef28b : 0xff7b68;
+    const startX = this.phase4ScanDirection === "left" ? 220 : 484;
+    const endX = this.phase4ScanDirection === "left" ? 484 : 220;
+
     this.phase4LaserBeam
-      .setFillStyle(color, 0.95)
-      .setAlpha(0.95)
-      .setX(210);
+      .setFillStyle(color, 0.96)
+      .setAlpha(0.96)
+      .setX(startX);
     this.phase4LaserGlow
-      .setFillStyle(color, 0.2)
-      .setAlpha(0.65)
-      .setX(210);
+      .setFillStyle(color, 0.22)
+      .setAlpha(0.72)
+      .setX(startX);
+    this.phase4LaserHead.setFillStyle(color, 1).setX(startX);
 
     this.tweens.add({
-      targets: [this.phase4LaserBeam, this.phase4LaserGlow],
-      x: 474,
-      duration: 850,
-      yoyo: true,
+      targets: [
+        this.phase4LaserBeam,
+        this.phase4LaserGlow,
+        this.phase4LaserHead,
+      ],
+      x: endX,
+      duration: 900,
       ease: "Sine.inOut",
       onComplete: () => {
         this.phase4LaserBeam.setAlpha(0);
         this.phase4LaserGlow.setAlpha(0);
+        this.phase4LaserHead.setFillStyle(0x62e7f2, 0.95).setX(352);
         onComplete();
       },
     });
+  }
+
+  showFailure(remainingImportantDirt) {
+    this.updateScore(-PHASE4_READ_PENALTY);
+    this.showFeedback(
+      "O laser encontrou sujeira. Limpe os setores importantes.",
+      "error",
+    );
+
+    remainingImportantDirt.forEach((dirt) => {
+      const dirtObject = this.phase4DirtObjects[dirt.index];
+      this.tweens.add({
+        targets: dirtObject.container,
+        scale: 1.22,
+        duration: 90,
+        yoyo: true,
+        repeat: 2,
+        ease: "Sine.inOut",
+      });
+    });
+
+    this.tweens.add({
+      targets: this.phase4DiscContainer,
+      x: PHASE4_DISC.x + 5,
+      duration: 55,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.inOut",
+      onComplete: () => this.phase4DiscContainer.setX(PHASE4_DISC.x),
+    });
+    this.cameras.main.shake(110, 0.0015);
   }
 
   updateScore(change) {
@@ -616,56 +1074,47 @@ export default class Phase4Scene extends Phaser.Scene {
       scale: 1.12,
       duration: 100,
       yoyo: true,
+      ease: "Sine.inOut",
     });
   }
 
-  showMessage(message, color = "#8da2bd") {
-    this.phase4MessageText.setText(message).setColor(color);
-  }
+  showFeedback(message, type = "neutral") {
+    const colors = {
+      neutral: "#8da2bd",
+      success: "#8ef28b",
+      error: "#ff9b78",
+      warning: "#ffd166",
+    };
 
-  showFailure() {
-    this.updateScore(-10);
-    this.showMessage(
-      "O laser encontrou obstáculos. Limpe o disco antes de tentar novamente.",
-      "#ff9b78",
-    );
-
-    this.phase4DirtObjects.forEach((dirt, index) => {
-      if (!this.phase4CleanedDirt.has(index)) {
-        dirt.container.setAlpha(1);
-        this.tweens.add({
-          targets: dirt.container,
-          scale: 1.2,
-          duration: 90,
-          yoyo: true,
-          repeat: 2,
-        });
-      }
-    });
-    this.cameras.main.shake(130, 0.002);
+    this.phase4MessageText
+      .setText(message)
+      .setColor(colors[type] ?? colors.neutral);
   }
 
   showSuccess() {
     this.phase4IsComplete = true;
     this.disableChallengeControls();
-    this.showMessage(
-      "Leitura concluída! O laser conseguiu acessar os dados do disco.",
-      "#8ef28b",
-    );
+    this.showFeedback("Leitura concluída com sucesso!", "success");
 
     this.phase4DiscGlow
-      .setFillStyle(0x8ef28b, 0.08)
-      .setStrokeStyle(4, 0x8ef28b, 0.85)
+      .setFillStyle(0x8ef28b, 0.1)
+      .setStrokeStyle(4, 0x8ef28b, 0.9)
       .setBlendMode(Phaser.BlendModes.ADD);
 
     this.tweens.add({
-      targets: [this.phase4DiscGlow, this.phase4DiscContainer],
-      scale: 1.1,
-      alpha: { from: 1, to: 0.35 },
-      duration: 350,
+      targets: this.phase4DiscGlow,
+      scale: 1.12,
+      alpha: 0.3,
+      duration: 340,
       yoyo: true,
       repeat: 2,
       ease: "Sine.inOut",
+    });
+    this.tweens.add({
+      targets: this.phase4DiscContainer,
+      angle: 360,
+      duration: 1300,
+      ease: "Cubic.out",
     });
 
     this.createSuccessSparkles();
@@ -674,12 +1123,12 @@ export default class Phase4Scene extends Phaser.Scene {
 
   createSuccessSparkles() {
     const positions = [
-      [220, 165],
-      [292, 115],
-      [402, 125],
-      [472, 184],
-      [450, 337],
-      [250, 350],
+      [232, 170],
+      [310, 120],
+      [410, 124],
+      [487, 180],
+      [470, 348],
+      [244, 350],
     ];
 
     positions.forEach(([x, y], index) => {
@@ -733,26 +1182,28 @@ export default class Phase4Scene extends Phaser.Scene {
 
     this.createCompletionDisc(480, 126);
 
-    const panel = createRoundedPanel(this, 480, 301, 770, 220, {
-      stroke: 0xc49cff,
-      strokeAlpha: 0.42,
-      radius: 18,
-    });
-    this.addToStage(panel);
+    this.addToStage(
+      createRoundedPanel(this, 480, 301, 770, 220, {
+        stroke: 0xc49cff,
+        strokeAlpha: 0.42,
+        radius: 18,
+      }),
+    );
 
     this.addToStage(
       this.add
         .text(
           480,
-          278,
-          "Você aprendeu que CDs e DVDs armazenavam dados de forma\nóptica, usando um laser para leitura. Eles trouxeram mais\ncapacidade para músicas, vídeos, jogos e programas, mas eram\nsensíveis a arranhões e sujeira.",
+          280,
+          "Você aprendeu que CDs e DVDs armazenam dados de forma óptica,\nusando laser. Eles oferecem mais capacidade que disquetes,\nmas podem falhar quando estão sujos ou arranhados.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "19px",
-            fontStyle: "600",
+            fontStyle: "700",
             color: "#dce8f5",
             align: "center",
             lineSpacing: 7,
+            wordWrap: { width: 710 },
           },
         )
         .setOrigin(0.5),
@@ -854,13 +1305,14 @@ export default class Phase4Scene extends Phaser.Scene {
       border: options.border ?? 0x62e7f2,
       hover: options.hover ?? 0x1c5264,
       fontSize: options.fontSize ?? "10px",
+      height: options.height ?? 56,
       addToStage: (button) => this.addToStage(button),
     });
   }
 
   createBackLink() {
     const text = this.add
-      .text(38, 29, "← LINHA DO TEMPO", {
+      .text(38, 29, "< LINHA DO TEMPO", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "14px",
         fontStyle: "800",
