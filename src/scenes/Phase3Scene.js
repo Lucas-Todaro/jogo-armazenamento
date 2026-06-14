@@ -7,27 +7,128 @@ import {
 
 const PHASE3_CAPACITY_MB = 1.44;
 const PHASE3_STARTING_SCORE = 100;
-const PHASE3_FILES = [
-  { id: "text", name: "texto.txt", size: 0.1, essential: true, type: "TXT" },
-  { id: "photo", name: "foto.bmp", size: 0.5, essential: true, type: "BMP" },
+const PHASE3_SAVE_PENALTY = 10;
+const PHASE3_CAPACITY_PENALTY = 5;
+const PHASE3_MIN_FILES = 6;
+const PHASE3_MAX_FILES = 8;
+
+const PHASE3_FILE_TEMPLATES = [
   {
-    id: "sheet",
-    name: "planilha.xls",
-    size: 0.3,
-    essential: true,
-    type: "XLS",
+    id: "text",
+    name: "texto.txt",
+    type: "TXT",
+    minSize: 0.07,
+    maxSize: 0.15,
+    canBeImportant: true,
   },
-  { id: "music", name: "musica.wav", size: 1.2, essential: false, type: "WAV" },
-  { id: "game", name: "jogo.exe", size: 2.0, essential: false, type: "EXE" },
+  {
+    id: "summary",
+    name: "resumo.pdf",
+    type: "PDF",
+    minSize: 0.18,
+    maxSize: 0.32,
+    canBeImportant: true,
+  },
   {
     id: "document",
     name: "trabalho.doc",
-    size: 0.4,
-    essential: true,
     type: "DOC",
+    minSize: 0.16,
+    maxSize: 0.3,
+    canBeImportant: true,
   },
-  { id: "drawing", name: "desenho.bmp", size: 0.8, essential: false, type: "BMP" },
+  {
+    id: "sheet",
+    name: "planilha.xls",
+    type: "XLS",
+    minSize: 0.22,
+    maxSize: 0.38,
+    canBeImportant: true,
+  },
+  {
+    id: "photo",
+    name: "foto.bmp",
+    type: "BMP",
+    minSize: 0.46,
+    maxSize: 0.7,
+    canBeImportant: true,
+  },
+  {
+    id: "drawing",
+    name: "desenho.bmp",
+    type: "BMP",
+    minSize: 0.42,
+    maxSize: 0.64,
+    canBeImportant: true,
+  },
+  {
+    id: "music",
+    name: "musica.wav",
+    type: "WAV",
+    minSize: 0.95,
+    maxSize: 1.35,
+    canBeImportant: false,
+  },
+  {
+    id: "video",
+    name: "video.avi",
+    type: "AVI",
+    minSize: 1.65,
+    maxSize: 2.8,
+    canBeImportant: false,
+  },
+  {
+    id: "game",
+    name: "jogo.exe",
+    type: "EXE",
+    minSize: 1.5,
+    maxSize: 2.5,
+    canBeImportant: false,
+  },
+  {
+    id: "backup",
+    name: "backup.zip",
+    type: "ZIP",
+    minSize: 0.72,
+    maxSize: 1.18,
+    canBeImportant: false,
+  },
+  {
+    id: "code",
+    name: "codigo.c",
+    type: "C",
+    minSize: 0.05,
+    maxSize: 0.14,
+    canBeImportant: true,
+  },
+  {
+    id: "notes",
+    name: "notas.txt",
+    type: "TXT",
+    minSize: 0.04,
+    maxSize: 0.11,
+    canBeImportant: true,
+  },
+  {
+    id: "image",
+    name: "imagem.gif",
+    type: "GIF",
+    minSize: 0.28,
+    maxSize: 0.46,
+    canBeImportant: true,
+  },
+  {
+    id: "slides",
+    name: "apresentacao.ppt",
+    type: "PPT",
+    minSize: 0.38,
+    maxSize: 0.62,
+    canBeImportant: true,
+  },
 ];
+
+const PHASE3_OVERSIZED_IDS = new Set(["video", "game"]);
+const PHASE3_BULKY_IDS = new Set(["music", "backup"]);
 
 export default class Phase3Scene extends Phaser.Scene {
   constructor() {
@@ -71,28 +172,30 @@ export default class Phase3Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    const panel = createRoundedPanel(this, 480, 278, 780, 374, {
-      stroke: 0x8ef28b,
-      strokeAlpha: 0.46,
-      radius: 20,
-    });
-    this.addToStage(panel);
+    this.addToStage(
+      createRoundedPanel(this, 480, 278, 780, 374, {
+        stroke: 0x8ef28b,
+        strokeAlpha: 0.46,
+        radius: 20,
+      }),
+    );
 
-    this.createIntroFloppyDisk(480, 151);
+    this.createIntroFloppyDisk(480, 155);
 
     this.addToStage(
       this.add
         .text(
           480,
-          294,
-          "Com os disquetes, os dados ficaram mais fáceis de transportar\nentre computadores. Eles armazenavam informações\nmagneticamente em um disco flexível protegido por\numa capa plástica.",
+          298,
+          "Os disquetes permitiam transportar arquivos entre computadores,\nmas tinham capacidade muito pequena.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "19px",
-            fontStyle: "600",
+            fontSize: "20px",
+            fontStyle: "700",
             color: "#dce8f5",
             align: "center",
-            lineSpacing: 6,
+            lineSpacing: 7,
+            wordWrap: { width: 710 },
           },
         )
         .setOrigin(0.5),
@@ -102,15 +205,16 @@ export default class Phase3Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          376,
-          "O desafio era a pouca capacidade:\nnem todos os arquivos cabiam no disquete.",
+          372,
+          "Escolha os arquivos importantes e salve no disquete\nsem ultrapassar o limite de espaço.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "18px",
-            fontStyle: "800",
+            fontStyle: "900",
             color: "#ffd166",
             align: "center",
             lineSpacing: 5,
+            wordWrap: { width: 700 },
           },
         )
         .setOrigin(0.5),
@@ -133,13 +237,15 @@ export default class Phase3Scene extends Phaser.Scene {
     this.phase3Score = PHASE3_STARTING_SCORE;
     this.phase3IsComplete = false;
     this.phase3FileCards = new Map();
+    this.phase3MissionCards = new Map();
+    this.setupRandomChallenge();
 
     this.clearStage();
     this.phase3Stage = this.add.container(0, 0);
 
     this.addToStage(
       this.add
-        .text(480, 29, "GERENCIADOR DE DISQUETE", {
+        .text(480, 29, "FASE 3: DISQUETE", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "15px",
           color: "#8ef28b",
@@ -156,25 +262,14 @@ export default class Phase3Scene extends Phaser.Scene {
       .setOrigin(1, 0.5);
     this.addToStage(this.phase3ScoreText);
 
-    this.createMissionPanel();
+    this.createObjectivePanel();
     this.createFileList();
-    this.createFloppyDisk();
-    this.createCapacityBar();
-    this.createEducationBox();
+    this.createStoragePanel();
     this.createControls();
-
-    this.phase3MessageText = this.add
-      .text(480, 505, "Selecione os quatro arquivos importantes.", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "15px",
-        fontStyle: "700",
-        color: "#8da2bd",
-        align: "center",
-        wordWrap: { width: 860 },
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase3MessageText);
+    this.createFeedbackArea();
     this.createBackLink();
+    this.updateCapacityBar();
+    this.updateMissionState();
 
     this.phase3Stage.setAlpha(0);
     this.tweens.add({
@@ -185,26 +280,204 @@ export default class Phase3Scene extends Phaser.Scene {
     });
   }
 
-  createMissionPanel() {
-    const panel = createRoundedPanel(this, 350, 73, 630, 56, {
-      fill: 0x101f35,
-      stroke: 0xffd166,
-      strokeAlpha: 0.38,
-      radius: 12,
-      shadow: false,
-    });
-    this.addToStage(panel);
+  setupRandomChallenge() {
+    const previousSignature = this.phase3ChallengeSignature;
+
+    for (let attempt = 0; attempt < 150; attempt += 1) {
+      const fileCount = Phaser.Math.Between(
+        PHASE3_MIN_FILES,
+        PHASE3_MAX_FILES,
+      );
+      const importantCount = Phaser.Math.Between(3, 4);
+      const generatedFiles = PHASE3_FILE_TEMPLATES.map((template) =>
+        this.createFileFromTemplate(template),
+      );
+      const importantFiles = this.pickImportantFiles(
+        generatedFiles,
+        importantCount,
+      );
+
+      if (!importantFiles) {
+        continue;
+      }
+
+      const usedIds = new Set(importantFiles.map((file) => file.id));
+      const oversizedFile = this.shuffleItems(
+        generatedFiles.filter((file) => PHASE3_OVERSIZED_IDS.has(file.id)),
+      )[0];
+      const bulkyFile = this.shuffleItems(
+        generatedFiles.filter((file) => PHASE3_BULKY_IDS.has(file.id)),
+      )[0];
+
+      const selectedFiles = [...importantFiles, oversizedFile, bulkyFile];
+      usedIds.add(oversizedFile.id);
+      usedIds.add(bulkyFile.id);
+
+      const remainingFiles = this.shuffleItems(
+        generatedFiles.filter((file) => !usedIds.has(file.id)),
+      );
+
+      while (selectedFiles.length < fileCount && remainingFiles.length > 0) {
+        const nextFile = remainingFiles.pop();
+        selectedFiles.push(nextFile);
+        usedIds.add(nextFile.id);
+      }
+
+      const importantIds = new Set(importantFiles.map((file) => file.id));
+      const challengeFiles = this.shuffleItems(selectedFiles).map((file) => ({
+        ...file,
+        essential: importantIds.has(file.id),
+      }));
+      const signature = challengeFiles
+        .map(
+          (file) =>
+            `${file.id}:${file.size.toFixed(2)}:${file.essential ? "I" : "N"}`,
+        )
+        .join("|");
+
+      if (signature !== previousSignature) {
+        this.phase3Files = challengeFiles;
+        this.phase3ImportantFiles = challengeFiles.filter(
+          (file) => file.essential,
+        );
+        this.phase3ChallengeSignature = signature;
+        return;
+      }
+    }
+
+    this.createFallbackChallenge();
+  }
+
+  createFileFromTemplate(template) {
+    const minSize = Math.round(template.minSize * 100);
+    const maxSize = Math.round(template.maxSize * 100);
+
+    return {
+      id: template.id,
+      name: template.name,
+      type: template.type,
+      size: Phaser.Math.Between(minSize, maxSize) / 100,
+      canBeImportant: template.canBeImportant,
+    };
+  }
+
+  pickImportantFiles(files, importantCount) {
+    const eligibleFiles = files.filter((file) => file.canBeImportant);
+    const minimumUsefulCapacity = importantCount === 4 ? 0.78 : 0.58;
+    const maximumUsefulCapacity = 1.3;
+
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const candidates = this.shuffleItems(eligibleFiles).slice(
+        0,
+        importantCount,
+      );
+      const totalSize = candidates.reduce(
+        (total, file) => total + file.size,
+        0,
+      );
+
+      if (
+        totalSize >= minimumUsefulCapacity &&
+        totalSize <= maximumUsefulCapacity
+      ) {
+        return candidates;
+      }
+    }
+
+    return null;
+  }
+
+  createFallbackChallenge() {
+    const fallbackFiles = [
+      { id: "notes", name: "notas.txt", type: "TXT", size: 0.1, essential: true },
+      {
+        id: "document",
+        name: "trabalho.doc",
+        type: "DOC",
+        size: 0.28,
+        essential: true,
+      },
+      {
+        id: "summary",
+        name: "resumo.pdf",
+        type: "PDF",
+        size: 0.31,
+        essential: true,
+      },
+      {
+        id: "image",
+        name: "imagem.gif",
+        type: "GIF",
+        size: 0.39,
+        essential: true,
+      },
+      {
+        id: "music",
+        name: "musica.wav",
+        type: "WAV",
+        size: 1.16,
+        essential: false,
+      },
+      {
+        id: "video",
+        name: "video.avi",
+        type: "AVI",
+        size: 2.25,
+        essential: false,
+      },
+      {
+        id: "backup",
+        name: "backup.zip",
+        type: "ZIP",
+        size: 0.88,
+        essential: false,
+      },
+    ];
+
+    this.phase3Files = this.shuffleItems(fallbackFiles);
+    this.phase3ImportantFiles = this.phase3Files.filter(
+      (file) => file.essential,
+    );
+    this.phase3ChallengeSignature = this.phase3Files
+      .map((file) => `${file.id}:${file.size.toFixed(2)}`)
+      .join("|");
+  }
+
+  shuffleItems(items) {
+    const shuffled = [...items];
+
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Phaser.Math.Between(0, index);
+      [shuffled[index], shuffled[swapIndex]] = [
+        shuffled[swapIndex],
+        shuffled[index],
+      ];
+    }
+
+    return shuffled;
+  }
+
+  createObjectivePanel() {
+    this.addToStage(
+      createRoundedPanel(this, 480, 75, 740, 50, {
+        fill: 0x101f35,
+        stroke: 0xffd166,
+        strokeAlpha: 0.38,
+        radius: 12,
+        shadow: false,
+      }),
+    );
 
     this.addToStage(
       this.add
         .text(
-          350,
-          73,
-          "MISSÃO: salve os arquivos importantes sem ultrapassar 1,44 MB",
+          480,
+          75,
+          "Objetivo: salve os arquivos importantes sem ultrapassar 1,44 MB.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "16px",
-            fontStyle: "800",
+            fontStyle: "900",
             color: "#ffd166",
             align: "center",
           },
@@ -215,8 +488,17 @@ export default class Phase3Scene extends Phaser.Scene {
 
   createFileList() {
     this.addToStage(
+      createRoundedPanel(this, 280, 278, 500, 330, {
+        fill: 0x0b1729,
+        stroke: 0x62e7f2,
+        strokeAlpha: 0.32,
+        radius: 16,
+      }),
+    );
+
+    this.addToStage(
       this.add
-        .text(298, 113, "ARQUIVOS DISPONÍVEIS", {
+        .text(280, 130, "ARQUIVOS DISPONÍVEIS", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "9px",
           color: "#62e7f2",
@@ -224,154 +506,236 @@ export default class Phase3Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    const positions = [
-      [165, 154],
-      [427, 154],
-      [165, 211],
-      [427, 211],
-      [165, 268],
-      [427, 268],
-      [165, 325],
-    ];
+    const columnPositions = [168, 392];
+    const rowPositions = [170, 229, 288, 347];
 
-    PHASE3_FILES.forEach((file, index) => {
-      const [x, y] = positions[index];
-      const cardContainer = this.add.container(x, y);
-      const background = this.add
-        .rectangle(0, 0, 238, 48, 0x16263a, 1)
-        .setStrokeStyle(2, 0x40566d, 0.8)
-        .setInteractive({ useHandCursor: true });
-      const icon = this.add
-        .rectangle(-94, 0, 32, 32, this.getFileColor(file.type), 0.9)
-        .setStrokeStyle(1, 0xf1f7ff, 0.35);
-      const typeText = this.add
-        .text(-94, 0, file.type, {
+    this.phase3Files.forEach((file, index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      this.createFileCard(
+        file,
+        columnPositions[column],
+        rowPositions[row],
+      );
+    });
+  }
+
+  createFileCard(file, x, y) {
+    const cardContainer = this.add.container(x, y);
+    const background = this.add
+      .rectangle(0, 0, 210, 50, 0x16263a, 1)
+      .setStrokeStyle(2, 0x40566d, 0.82)
+      .setInteractive({ useHandCursor: true });
+    const icon = this.add
+      .rectangle(-83, 0, 31, 32, this.getFileColor(file.type), 0.94)
+      .setStrokeStyle(1, 0xf1f7ff, 0.34);
+    const typeText = this.add
+      .text(-83, 0, file.type, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: file.type.length > 3 ? "4px" : "5px",
+        color: "#07101f",
+      })
+      .setOrigin(0.5);
+    const nameText = this.add
+      .text(-61, -9, file.name, {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "13px",
+        fontStyle: "900",
+        color: "#f1f7ff",
+      })
+      .setOrigin(0, 0.5);
+    const sizeText = this.add
+      .text(-61, 11, `${this.formatCapacity(file.size)} MB`, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "6px",
+        color: "#9fb1c6",
+      })
+      .setOrigin(0, 0.5);
+    const selectedMark = this.add
+      .text(91, 12, "OK", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "6px",
+        color: "#8ef28b",
+      })
+      .setOrigin(1, 0.5)
+      .setVisible(false);
+    const importantTag = this.add
+      .text(96, -13, "IMPORTANTE", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "5px",
+        color: "#ffd166",
+        backgroundColor: "#493d1c",
+        padding: { left: 4, right: 4, top: 3, bottom: 3 },
+      })
+      .setOrigin(1, 0.5)
+      .setVisible(file.essential);
+
+    cardContainer.add([
+      background,
+      icon,
+      typeText,
+      nameText,
+      sizeText,
+      selectedMark,
+      importantTag,
+    ]);
+    this.addToStage(cardContainer);
+
+    background.on("pointerover", () => {
+      if (!this.phase3IsComplete) {
+        background.setFillStyle(
+          this.phase3SelectedIds.has(file.id) ? 0x285b68 : 0x203b50,
+        );
+      }
+    });
+    background.on("pointerout", () => {
+      background.setFillStyle(
+        this.phase3SelectedIds.has(file.id) ? 0x245064 : 0x16263a,
+      );
+    });
+    background.on("pointerdown", () => this.toggleFileSelection(file.id));
+
+    this.phase3FileCards.set(file.id, {
+      container: cardContainer,
+      background,
+      selectedMark,
+    });
+  }
+
+  createStoragePanel() {
+    this.addToStage(
+      createRoundedPanel(this, 755, 278, 310, 330, {
+        fill: 0x0b1729,
+        stroke: 0x8ef28b,
+        strokeAlpha: 0.34,
+        radius: 16,
+      }),
+    );
+
+    this.createMissionList();
+    this.createFloppyDisk();
+    this.createCapacityBar();
+
+    this.addToStage(
+      this.add
+        .text(
+          755,
+          425,
+          "Dica: disquetes tinham pouco espaço.\nEscolha apenas o essencial.",
+          {
+            fontFamily: '"Nunito", sans-serif',
+            fontSize: "12px",
+            fontStyle: "800",
+            color: "#c7d7e8",
+            align: "center",
+            lineSpacing: 2,
+          },
+        )
+        .setOrigin(0.5),
+    );
+  }
+
+  createMissionList() {
+    this.addToStage(
+      this.add
+        .text(755, 130, "MISSÃO: ARQUIVOS IMPORTANTES", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "5px",
-          color: "#07101f",
+          fontSize: "7px",
+          color: "#ffd166",
+        })
+        .setOrigin(0.5),
+    );
+
+    const columns = [688, 822];
+    const rows = [157, 184];
+
+    this.phase3ImportantFiles.forEach((file, index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const chipContainer = this.add.container(
+        columns[column],
+        rows[row],
+      );
+      const chipBackground = this.add
+        .rectangle(0, 0, 124, 22, 0x2f2919, 1)
+        .setStrokeStyle(1, 0xffd166, 0.55);
+      const chipText = this.add
+        .text(0, 0, file.name, {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "11px",
+          fontStyle: "900",
+          color: "#ffe39a",
         })
         .setOrigin(0.5);
-      const nameText = this.add
-        .text(-70, -8, file.name, {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "14px",
-          fontStyle: "800",
-          color: "#dce8f5",
-        })
-        .setOrigin(0, 0.5);
-      const sizeText = this.add
-        .text(-70, 11, `${file.size.toFixed(2)} MB`, {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "6px",
-          color: "#8da2bd",
-        })
-        .setOrigin(0, 0.5);
-      const check = this.add
-        .text(101, 0, "✓", {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "23px",
-          fontStyle: "900",
-          color: "#8ef28b",
-        })
-        .setOrigin(0.5)
-        .setVisible(false);
 
-      cardContainer.add([
-        background,
-        icon,
-        typeText,
-        nameText,
-        sizeText,
-        check,
-      ]);
-      this.addToStage(cardContainer);
-
-      background.on("pointerover", () => {
-        if (!this.phase3IsComplete) {
-          background.setFillStyle(0x203b50);
-        }
-      });
-      background.on("pointerout", () => {
-        const selected = this.phase3SelectedIds.has(file.id);
-        background.setFillStyle(selected ? 0x245064 : 0x16263a);
-      });
-      background.on("pointerdown", () => this.toggleFileSelection(file.id));
-
-      this.phase3FileCards.set(file.id, {
-        container: cardContainer,
-        background,
-        check,
+      chipContainer.add([chipBackground, chipText]);
+      this.addToStage(chipContainer);
+      this.phase3MissionCards.set(file.id, {
+        container: chipContainer,
+        background: chipBackground,
+        text: chipText,
       });
     });
   }
 
-  getFileColor(type) {
-    const colors = {
-      TXT: 0x62e7f2,
-      BMP: 0xffd166,
-      XLS: 0x8ef28b,
-      WAV: 0xc49cff,
-      EXE: 0xff8f70,
-      DOC: 0x70b7ff,
-    };
-    return colors[type] ?? 0x8da2bd;
-  }
-
   createFloppyDisk() {
+    const x = 677;
+    const y = 207;
+    const width = 156;
+    const height = 122;
     const graphics = this.add.graphics();
-    const x = 688;
-    const y = 119;
-    const width = 190;
-    const height = 177;
 
-    graphics.fillStyle(0x0a111d, 0.35);
-    graphics.fillRoundedRect(x + 8, y + 9, width, height, 13);
+    graphics.fillStyle(0x000000, 0.28);
+    graphics.fillRoundedRect(x + 7, y + 8, width, height, 11);
     graphics.fillStyle(0x274c46, 1);
-    graphics.fillRoundedRect(x, y, width, height, 13);
+    graphics.fillRoundedRect(x, y, width, height, 11);
     graphics.lineStyle(3, 0x8ef28b, 0.58);
-    graphics.strokeRoundedRect(x, y, width, height, 13);
+    graphics.strokeRoundedRect(x, y, width, height, 11);
 
     graphics.fillStyle(0xb8c2c7, 1);
-    graphics.fillRoundedRect(x + 42, y, 106, 67, 5);
+    graphics.fillRoundedRect(x + 34, y, 88, 45, 4);
     graphics.fillStyle(0x26343e, 1);
-    graphics.fillRect(x + 112, y + 8, 22, 48);
+    graphics.fillRect(x + 91, y + 7, 19, 31);
     graphics.fillStyle(0x8da2bd, 0.45);
-    graphics.fillRect(x + 52, y + 9, 48, 47);
+    graphics.fillRect(x + 43, y + 8, 35, 29);
 
     graphics.fillStyle(0xd8cfaa, 1);
-    graphics.fillRoundedRect(x + 31, y + 94, 128, 72, 7);
+    graphics.fillRoundedRect(x + 27, y + 65, 102, 46, 6);
     graphics.lineStyle(2, 0x786f50, 0.55);
-    graphics.strokeRoundedRect(x + 31, y + 94, 128, 72, 7);
-    graphics.lineBetween(x + 47, y + 122, x + 142, y + 122);
-    graphics.lineBetween(x + 47, y + 137, x + 142, y + 137);
-    graphics.lineBetween(x + 47, y + 152, x + 119, y + 152);
+    graphics.strokeRoundedRect(x + 27, y + 65, 102, 46, 6);
+    graphics.lineBetween(x + 41, y + 83, x + 114, y + 83);
+    graphics.lineBetween(x + 41, y + 96, x + 103, y + 96);
     this.addToStage(graphics);
 
     this.phase3DiskGlow = this.add
-      .rectangle(x + width / 2, y + height / 2, width + 12, height + 12, 16)
+      .rectangle(
+        x + width / 2,
+        y + height / 2,
+        width + 12,
+        height + 12,
+        14,
+      )
       .setStrokeStyle(4, 0x8ef28b, 0)
       .setFillStyle(0x8ef28b, 0);
     this.addToStage(this.phase3DiskGlow);
 
-    this.addToStage(
-      this.add
-        .text(x + width / 2, y + 108, "A JORNADA\nDO BIT", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "7px",
-          color: "#514a34",
-          align: "center",
-          lineSpacing: 4,
-        })
-        .setOrigin(0.5),
-    );
+    this.phase3SelectionText = this.add
+      .text(x + width / 2, y + 88, "0 arquivos", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "6px",
+        color: "#514a34",
+        align: "center",
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase3SelectionText);
   }
 
   createCapacityBar() {
     this.addToStage(
       this.add
-        .text(783, 317, "ESPAÇO NO DISQUETE", {
+        .text(755, 347, "CAPACIDADE DO DISQUETE: 1,44 MB", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
+          fontSize: "7px",
           color: "#ffd166",
         })
         .setOrigin(0.5),
@@ -379,72 +743,84 @@ export default class Phase3Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .rectangle(783, 343, 214, 22, 0x09121f, 1)
-        .setStrokeStyle(2, 0x60758a, 0.8),
+        .rectangle(755, 373, 250, 24, 0x07101f, 1)
+        .setStrokeStyle(2, 0x60758a, 0.9),
     );
 
     this.phase3CapacityFill = this.add
-      .rectangle(678, 343, 210, 16, 0x8ef28b, 1)
+      .rectangle(632, 373, 246, 18, 0x8ef28b, 1)
       .setOrigin(0, 0.5)
       .setScale(0, 1);
     this.addToStage(this.phase3CapacityFill);
 
     this.phase3CapacityText = this.add
-      .text(783, 370, "0,00 MB / 1,44 MB", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "7px",
+      .text(755, 399, "Usado: 0,00 MB / 1,44 MB", {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "14px",
+        fontStyle: "900",
         color: "#dce8f5",
       })
       .setOrigin(0.5);
     this.addToStage(this.phase3CapacityText);
   }
 
-  createEducationBox() {
-    const panel = createRoundedPanel(this, 783, 424, 230, 88, {
-      fill: 0x101f35,
-      stroke: 0x62e7f2,
-      strokeAlpha: 0.3,
-      radius: 12,
-      shadow: false,
-    });
-    this.addToStage(panel);
-
-    this.addToStage(
-      this.add
-        .text(
-          783,
-          424,
-          "Um disquete comum guardava apenas\n1,44 MB. Era portátil, mas sensível\na sujeira, calor e campos magnéticos.",
-          {
-            fontFamily: '"Nunito", sans-serif',
-            fontSize: "12px",
-            fontStyle: "700",
-            color: "#c7d7e8",
-            align: "center",
-            lineSpacing: 3,
-          },
-        )
-        .setOrigin(0.5),
+  createControls() {
+    this.phase3ClearButton = this.createButton(
+      169,
+      416,
+      205,
+      "LIMPAR SELEÇÃO",
+      () => this.clearSelection(),
+      {
+        border: 0xffd166,
+        hover: 0x564624,
+        fontSize: "8px",
+        height: 48,
+      },
+    );
+    this.phase3SaveButton = this.createButton(
+      391,
+      416,
+      225,
+      "SALVAR NO DISQUETE",
+      () => this.validateSelection(),
+      {
+        border: 0x8ef28b,
+        hover: 0x246a69,
+        fontSize: "8px",
+        height: 48,
+      },
     );
   }
 
-  createControls() {
-    this.phase3ClearButton = this.createButton(
-      178,
-      434,
-      230,
-      "LIMPAR SELEÇÃO",
-      () => this.clearSelection(),
-      { border: 0xffd166, hover: 0x564624, fontSize: "9px" },
+  createFeedbackArea() {
+    this.addToStage(
+      createRoundedPanel(this, 480, 503, 850, 36, {
+        fill: 0x091424,
+        stroke: 0x62e7f2,
+        strokeAlpha: 0.24,
+        radius: 10,
+        shadow: false,
+        highlight: false,
+      }),
     );
-    this.phase3SaveButton = this.createButton(
-      449,
-      434,
-      270,
-      "SALVAR NO DISQUETE",
-      () => this.saveToDisk(),
-      { border: 0x8ef28b, hover: 0x246a69, fontSize: "9px" },
-    );
+
+    this.phase3MessageText = this.add
+      .text(
+        480,
+        503,
+        `Selecione os ${this.phase3ImportantFiles.length} arquivos importantes.`,
+        {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "14px",
+          fontStyle: "800",
+          color: "#8da2bd",
+          align: "center",
+          wordWrap: { width: 800 },
+        },
+      )
+      .setOrigin(0.5);
+    this.addToStage(this.phase3MessageText);
   }
 
   toggleFileSelection(fileId) {
@@ -452,117 +828,126 @@ export default class Phase3Scene extends Phaser.Scene {
       return;
     }
 
-    const file = PHASE3_FILES.find((entry) => entry.id === fileId);
+    const file = this.getFileById(fileId);
     const card = this.phase3FileCards.get(fileId);
-    const wasOverCapacity = this.phase3UsedCapacity > PHASE3_CAPACITY_MB;
+    const wasOverCapacity = this.isOverCapacity();
 
     if (this.phase3SelectedIds.has(fileId)) {
       this.phase3SelectedIds.delete(fileId);
-      this.showMessage("Arquivo removido da seleção.", "#62e7f2");
+      this.showFeedback("Arquivo removido da seleção.", "neutral");
     } else {
       this.phase3SelectedIds.add(fileId);
-      this.showMessage("Arquivo selecionado para salvar.", "#8ef28b");
+      this.showFeedback("Arquivo selecionado.", "success");
     }
 
     const isSelected = this.phase3SelectedIds.has(fileId);
-    card.check.setVisible(isSelected);
+    this.updateFileCard(card, isSelected);
+    this.updateCapacityBar();
+    this.updateMissionState();
+
+    const isOverCapacity = this.isOverCapacity();
+    if (!wasOverCapacity && isOverCapacity) {
+      this.updateScore(-PHASE3_CAPACITY_PENALTY);
+      this.showFeedback(
+        file.size > PHASE3_CAPACITY_MB
+          ? "Esse arquivo é grande demais para caber no disquete."
+          : "Espaço insuficiente no disquete.",
+        "error",
+      );
+      this.animateCapacityWarning();
+    }
+  }
+
+  updateFileCard(card, isSelected) {
+    card.selectedMark.setVisible(isSelected);
     card.background
       .setFillStyle(isSelected ? 0x245064 : 0x16263a)
       .setStrokeStyle(
         isSelected ? 3 : 2,
         isSelected ? 0x8ef28b : 0x40566d,
-        isSelected ? 1 : 0.8,
+        isSelected ? 1 : 0.82,
       );
 
     this.tweens.add({
       targets: card.container,
       scale: isSelected ? 1.035 : 1,
-      duration: 150,
+      duration: 140,
       ease: "Back.out",
     });
-
-    this.updateCapacity();
-
-    const isOverCapacity = this.phase3UsedCapacity > PHASE3_CAPACITY_MB;
-    if (!wasOverCapacity && isOverCapacity) {
-      this.updateScore(-5);
-      if (file.size > PHASE3_CAPACITY_MB) {
-        this.showMessage(
-          "Esse arquivo é grande demais para caber no disquete.",
-          "#ff9b78",
-        );
-      } else {
-        this.showMessage(
-          "Espaço insuficiente! O disquete não consegue guardar tudo isso.",
-          "#ff9b78",
-        );
-      }
-      this.animateCapacityWarning();
-    }
   }
 
-  updateCapacity() {
-    this.phase3UsedCapacity = PHASE3_FILES.reduce((total, file) => {
+  updateCapacityBar() {
+    this.phase3UsedCapacity = this.phase3Files.reduce((total, file) => {
       return this.phase3SelectedIds.has(file.id) ? total + file.size : total;
     }, 0);
 
     const ratio = this.phase3UsedCapacity / PHASE3_CAPACITY_MB;
-    const displayRatio = Phaser.Math.Clamp(ratio, 0, 1);
-    const overCapacity = ratio > 1;
+    const displayedRatio = Phaser.Math.Clamp(ratio, 0, 1);
+    const overCapacity = this.isOverCapacity();
+    const nearCapacity = ratio >= 0.82;
     const color = overCapacity
       ? 0xff7b68
-      : ratio > 0.82
+      : nearCapacity
         ? 0xffd166
         : 0x8ef28b;
 
+    this.tweens.killTweensOf(this.phase3CapacityFill);
     this.phase3CapacityFill.setFillStyle(color);
     this.tweens.add({
       targets: this.phase3CapacityFill,
-      scaleX: displayRatio,
-      duration: 220,
+      scaleX: displayedRatio,
+      duration: 210,
       ease: "Sine.out",
     });
 
     this.phase3CapacityText
       .setText(
-        `${this.formatCapacity(this.phase3UsedCapacity)} MB / 1,44 MB`,
+        `Usado: ${this.formatCapacity(this.phase3UsedCapacity)} MB / 1,44 MB`,
       )
-      .setColor(overCapacity ? "#ff9b78" : "#dce8f5");
+      .setColor(
+        overCapacity ? "#ff9b78" : nearCapacity ? "#ffd166" : "#dce8f5",
+      );
+
+    const selectedCount = this.phase3SelectedIds.size;
+    this.phase3SelectionText.setText(
+      `${selectedCount} ${selectedCount === 1 ? "arquivo" : "arquivos"}`,
+    );
   }
 
-  formatCapacity(value) {
-    return value.toFixed(2).replace(".", ",");
+  updateMissionState() {
+    this.phase3ImportantFiles.forEach((file) => {
+      const missionCard = this.phase3MissionCards.get(file.id);
+      const selected = this.phase3SelectedIds.has(file.id);
+
+      missionCard.background
+        .setFillStyle(selected ? 0x173d35 : 0x2f2919, 1)
+        .setStrokeStyle(
+          selected ? 2 : 1,
+          selected ? 0x8ef28b : 0xffd166,
+          selected ? 0.9 : 0.55,
+        );
+      missionCard.text.setColor(selected ? "#8ef28b" : "#ffe39a");
+    });
   }
 
-  saveToDisk() {
+  validateSelection() {
     if (this.phase3IsComplete) {
       return;
     }
 
-    if (this.phase3UsedCapacity > PHASE3_CAPACITY_MB) {
-      const hasOversizedFile = PHASE3_FILES.some(
-        (file) =>
-          this.phase3SelectedIds.has(file.id) &&
-          file.size > PHASE3_CAPACITY_MB,
-      );
-      this.showFailure(
-        hasOversizedFile
-          ? "Esse arquivo é grande demais para caber no disquete."
-          : "Espaço insuficiente! O disquete não consegue guardar tudo isso.",
-      );
+    if (this.isOverCapacity()) {
+      this.showFailure("Espaço insuficiente! Remova algum arquivo.");
       this.animateCapacityWarning();
       return;
     }
 
-    const missingEssential = PHASE3_FILES.some(
-      (file) => file.essential && !this.phase3SelectedIds.has(file.id),
+    const missingImportantFiles = this.phase3ImportantFiles.filter(
+      (file) => !this.phase3SelectedIds.has(file.id),
     );
 
-    if (missingEssential) {
-      this.showFailure(
-        "Alguns arquivos importantes ficaram de fora. Revise sua seleção.",
-      );
-      this.animateMissingFiles();
+    if (missingImportantFiles.length > 0) {
+      this.showFailure("Alguns arquivos importantes ficaram de fora.");
+      this.animateMissingFiles(missingImportantFiles);
       return;
     }
 
@@ -575,19 +960,10 @@ export default class Phase3Scene extends Phaser.Scene {
     }
 
     this.phase3SelectedIds.clear();
-    this.phase3FileCards.forEach(({ container, background, check }) => {
-      check.setVisible(false);
-      background
-        .setFillStyle(0x16263a)
-        .setStrokeStyle(2, 0x40566d, 0.8);
-      this.tweens.add({
-        targets: container,
-        scale: 1,
-        duration: 130,
-      });
-    });
-    this.updateCapacity();
-    this.showMessage("Seleção limpa. Escolha novamente os arquivos.", "#ffd166");
+    this.phase3FileCards.forEach((card) => this.updateFileCard(card, false));
+    this.updateCapacityBar();
+    this.updateMissionState();
+    this.showFeedback("Seleção limpa. Escolha novamente.", "warning");
   }
 
   updateScore(change) {
@@ -603,43 +979,65 @@ export default class Phase3Scene extends Phaser.Scene {
       scale: 1.12,
       duration: 100,
       yoyo: true,
+      ease: "Sine.inOut",
     });
   }
 
-  showMessage(message, color = "#8da2bd") {
-    this.phase3MessageText.setText(message).setColor(color);
+  showFeedback(message, type = "neutral") {
+    const colors = {
+      neutral: "#8da2bd",
+      success: "#8ef28b",
+      error: "#ff9b78",
+      warning: "#ffd166",
+    };
+
+    this.phase3MessageText
+      .setText(message)
+      .setColor(colors[type] ?? colors.neutral);
   }
 
   showFailure(message) {
-    this.updateScore(-10);
-    this.showMessage(message, "#ff9b78");
+    this.updateScore(-PHASE3_SAVE_PENALTY);
+    this.showFeedback(message, "error");
     this.cameras.main.shake(120, 0.002);
   }
 
   animateCapacityWarning() {
+    this.phase3CapacityFill.setX(632);
+    this.phase3CapacityText.setX(755);
     this.tweens.add({
       targets: [this.phase3CapacityFill, this.phase3CapacityText],
       x: "+=5",
       duration: 55,
       yoyo: true,
       repeat: 2,
+      ease: "Sine.inOut",
+      onComplete: () => {
+        this.phase3CapacityFill.setX(632);
+        this.phase3CapacityText.setX(755);
+      },
     });
   }
 
-  animateMissingFiles() {
-    PHASE3_FILES.filter(
-      (file) => file.essential && !this.phase3SelectedIds.has(file.id),
-    ).forEach((file) => {
+  animateMissingFiles(missingFiles) {
+    missingFiles.forEach((file) => {
       const card = this.phase3FileCards.get(file.id);
-      card.background.setStrokeStyle(3, 0xff9b78, 1);
+      const missionCard = this.phase3MissionCards.get(file.id);
+
+      card.background.setStrokeStyle(3, 0xff7b68, 1);
+      missionCard.background.setStrokeStyle(2, 0xff7b68, 1);
+      missionCard.text.setColor("#ff9b78");
+
       this.tweens.add({
-        targets: card.container,
+        targets: [card.container, missionCard.container],
         x: "+=5",
         duration: 55,
         yoyo: true,
         repeat: 2,
+        ease: "Sine.inOut",
         onComplete: () => {
-          card.background.setStrokeStyle(2, 0x40566d, 0.8);
+          card.background.setStrokeStyle(2, 0x40566d, 0.82);
+          this.updateMissionState();
         },
       });
     });
@@ -648,35 +1046,35 @@ export default class Phase3Scene extends Phaser.Scene {
   showSuccess() {
     this.phase3IsComplete = true;
     this.disableChallengeControls();
-    this.showMessage("Arquivos salvos com sucesso no disquete!", "#8ef28b");
+    this.showFeedback("Arquivos salvos com sucesso no disquete!", "success");
 
     this.phase3DiskGlow
-      .setStrokeStyle(4, 0x8ef28b, 0.85)
-      .setFillStyle(0x8ef28b, 0.08)
+      .setStrokeStyle(4, 0x8ef28b, 0.9)
+      .setFillStyle(0x8ef28b, 0.1)
       .setBlendMode(Phaser.BlendModes.ADD);
 
     this.tweens.add({
       targets: this.phase3DiskGlow,
-      scale: 1.12,
-      alpha: 0.25,
-      duration: 350,
+      scale: 1.14,
+      alpha: 0.28,
+      duration: 340,
       yoyo: true,
       repeat: 2,
       ease: "Sine.inOut",
     });
 
     this.createSuccessSparkles();
-    this.time.delayedCall(1450, () => this.showConclusion());
+    this.time.delayedCall(1400, () => this.showConclusion());
   }
 
   createSuccessSparkles() {
     const positions = [
-      [690, 138],
-      [735, 103],
-      [830, 111],
-      [875, 164],
-      [858, 268],
-      [710, 285],
+      [684, 225],
+      [716, 196],
+      [794, 196],
+      [830, 230],
+      [823, 308],
+      [690, 319],
     ];
 
     positions.forEach(([x, y], index) => {
@@ -730,26 +1128,28 @@ export default class Phase3Scene extends Phaser.Scene {
 
     this.createCompletionFloppyDisk(480, 126);
 
-    const panel = createRoundedPanel(this, 480, 301, 770, 220, {
-      stroke: 0x8ef28b,
-      strokeAlpha: 0.42,
-      radius: 18,
-    });
-    this.addToStage(panel);
+    this.addToStage(
+      createRoundedPanel(this, 480, 301, 770, 220, {
+        stroke: 0x8ef28b,
+        strokeAlpha: 0.42,
+        radius: 18,
+      }),
+    );
 
     this.addToStage(
       this.add
         .text(
           480,
-          278,
-          "Você aprendeu que o disquete tornou o armazenamento mais\nportátil, permitindo levar arquivos de um computador para\noutro. Mas sua capacidade era limitada, e arquivos grandes\nnem sempre cabiam.",
+          280,
+          "Você aprendeu que o disquete tornou os arquivos mais portáteis,\nmas tinha pouca capacidade. Por isso, era preciso escolher\nbem o que salvar.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "19px",
-            fontStyle: "600",
+            fontStyle: "700",
             color: "#dce8f5",
             align: "center",
             lineSpacing: 7,
+            wordWrap: { width: 710 },
           },
         )
         .setOrigin(0.5),
@@ -825,6 +1225,37 @@ export default class Phase3Scene extends Phaser.Scene {
     this.addToStage(graphics);
   }
 
+  getFileColor(type) {
+    const colors = {
+      TXT: 0x62e7f2,
+      PDF: 0xff8f70,
+      DOC: 0x70b7ff,
+      XLS: 0x8ef28b,
+      BMP: 0xffd166,
+      WAV: 0xc49cff,
+      AVI: 0xff8f70,
+      EXE: 0xff7b68,
+      ZIP: 0xc49cff,
+      C: 0x62e7f2,
+      GIF: 0xffd166,
+      PPT: 0xff8f70,
+    };
+
+    return colors[type] ?? 0x8da2bd;
+  }
+
+  getFileById(fileId) {
+    return this.phase3Files.find((file) => file.id === fileId);
+  }
+
+  isOverCapacity() {
+    return this.phase3UsedCapacity > PHASE3_CAPACITY_MB + 0.0001;
+  }
+
+  formatCapacity(value) {
+    return value.toFixed(2).replace(".", ",");
+  }
+
   disableChallengeControls() {
     this.phase3FileCards.forEach(({ background }) =>
       background.disableInteractive(),
@@ -846,13 +1277,14 @@ export default class Phase3Scene extends Phaser.Scene {
       border: options.border ?? 0x62e7f2,
       hover: options.hover ?? 0x1c5264,
       fontSize: options.fontSize ?? "10px",
+      height: options.height ?? 56,
       addToStage: (button) => this.addToStage(button),
     });
   }
 
   createBackLink() {
     const text = this.add
-      .text(38, 29, "← LINHA DO TEMPO", {
+      .text(38, 29, "< LINHA DO TEMPO", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "14px",
         fontStyle: "800",
