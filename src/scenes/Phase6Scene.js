@@ -13,15 +13,14 @@ const PHASE6_STARTING_SCORE = 100;
 const PHASE6_CAPACITY_MB = 1000;
 const PHASE6_ERROR_PENALTY = 10;
 const PHASE6_CAPACITY_PENALTY = 5;
-const PHASE6_MIN_FILES = 5;
-const PHASE6_MAX_FILES = 6;
+const PHASE6_FILE_COUNT = 5;
 const PHASE6_IMPORTANT_FILES = 3;
 
-const PHASE6_STEPS = [
-  "Selecione os arquivos importantes",
-  "Copie para o pen drive",
-  "Transfira para o computador destino",
-  "Ejete com segurança",
+const PHASE6_OBJECTIVES = [
+  "Objetivo: escolha os arquivos importantes.",
+  "Objetivo: copie os arquivos para a memoria flash.",
+  "Objetivo: leve os arquivos ao computador destino.",
+  "Objetivo: remova o pen drive com seguranca.",
 ];
 
 const PHASE6_FILE_TEMPLATES = [
@@ -176,7 +175,7 @@ export default class Phase6Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 48, "FASE 6: PEN DRIVE / MEMÓRIA FLASH", {
+        .text(480, 48, "FASE 6: PEN DRIVE / MEMORIA FLASH", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "16px",
           color: "#70b7ff",
@@ -199,7 +198,7 @@ export default class Phase6Scene extends Phaser.Scene {
         .text(
           480,
           302,
-          "O pen drive usa memória flash para armazenar dados eletronicamente,\nsem partes móveis. Ele tornou o transporte de arquivos\nmuito mais prático.",
+          "O pen drive usa memoria flash para guardar dados sem partes moveis.\nNesta fase voce vai transferir arquivos em passos simples.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "19px",
@@ -215,20 +214,13 @@ export default class Phase6Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(
-          480,
-          382,
-          "Copie os arquivos corretos, transfira para outro computador\ne remova o pen drive com segurança.",
-          {
-            fontFamily: '"Nunito", sans-serif',
-            fontSize: "18px",
-            fontStyle: "900",
-            color: "#ffd166",
-            align: "center",
-            lineSpacing: 5,
-            wordWrap: { width: 700 },
-          },
-        )
+        .text(480, 382, "Escolha, copie, transfira e ejete com seguranca.", {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "18px",
+          fontStyle: "900",
+          color: "#ffd166",
+          align: "center",
+        })
         .setOrigin(0.5),
     );
 
@@ -236,7 +228,7 @@ export default class Phase6Scene extends Phaser.Scene {
       480,
       454,
       290,
-      "COMEÇAR DESAFIO",
+      "COMECAR DESAFIO",
       () => this.startChallenge(),
       { border: 0x8ef28b, hover: 0x246a69 },
     );
@@ -254,19 +246,30 @@ export default class Phase6Scene extends Phaser.Scene {
     this.phase6IsComplete = false;
     this.phase6CurrentStep = 1;
     this.phase6FileCards = new Map();
-    this.phase6StepCards = [];
-    this.phase6FileListObjects = [];
-    this.phase6StatusObjects = [];
-    this.phase6CapacityObjects = [];
-    this.phase6ProgressObjects = [];
     this.setupRandomChallenge();
 
     this.clearStage();
     this.phase6Stage = this.add.container(0, 0);
+    this.phase6Body = this.add.container(0, 0);
 
+    this.createChallengeHeader();
+    this.addToStage(this.phase6Body);
+    this.createBackLink();
+    this.updateStep(1);
+
+    this.phase6Stage.setAlpha(0);
+    this.tweens.add({
+      targets: this.phase6Stage,
+      alpha: 1,
+      duration: 280,
+      ease: "Sine.out",
+    });
+  }
+
+  createChallengeHeader() {
     this.addToStage(
       this.add
-        .text(480, 28, "FASE 6: TRANSFERÊNCIA USB", {
+        .text(480, 28, "FASE 6: PEN DRIVE", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "14px",
           color: "#70b7ff",
@@ -283,41 +286,49 @@ export default class Phase6Scene extends Phaser.Scene {
       .setOrigin(1, 0.5);
     this.addToStage(this.phase6ScoreText);
 
-    this.createObjectivePanel();
-    this.createStepIndicator();
-    this.createTransferLayout();
-    this.createFileList();
-    this.createStatusPanel();
-    this.createControls();
-    this.createFeedbackArea();
-    this.createBackLink();
-    this.updateCapacityBar();
-    this.updateStep(1);
+    this.phase6StepNumberText = this.add
+      .text(480, 66, "Etapa 1 de 4", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "8px",
+        color: "#ffd166",
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase6StepNumberText);
 
-    this.phase6Stage.setAlpha(0);
-    this.tweens.add({
-      targets: this.phase6Stage,
-      alpha: 1,
-      duration: 280,
-      ease: "Sine.out",
-    });
+    this.phase6ObjectiveText = this.add
+      .text(480, 92, PHASE6_OBJECTIVES[0], {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "16px",
+        fontStyle: "900",
+        color: "#dce8f5",
+        align: "center",
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase6ObjectiveText);
+
+    this.phase6MessageText = this.add
+      .text(480, 506, "Selecione os arquivos importantes.", {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "14px",
+        fontStyle: "900",
+        color: "#8da2bd",
+        align: "center",
+        wordWrap: { width: 820 },
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase6MessageText);
   }
 
   setupRandomChallenge() {
     const previousSignature = this.phase6ChallengeSignature;
 
     for (let attempt = 0; attempt < 150; attempt += 1) {
-      const fileCount = Phaser.Math.Between(
-        PHASE6_MIN_FILES,
-        PHASE6_MAX_FILES,
-      );
-      const importantCount = PHASE6_IMPORTANT_FILES;
       const generatedFiles = PHASE6_FILE_TEMPLATES.map((template) =>
         this.createFileFromTemplate(template),
       );
       const importantFiles = this.pickImportantFiles(
         generatedFiles,
-        importantCount,
+        PHASE6_IMPORTANT_FILES,
       );
 
       if (!importantFiles) {
@@ -325,26 +336,29 @@ export default class Phase6Scene extends Phaser.Scene {
       }
 
       const usedIds = new Set(importantFiles.map((file) => file.id));
-      const largeFile = this.shuffleItems(
-        generatedFiles.filter((file) => PHASE6_LARGE_IDS.has(file.id)),
-      )[0];
-      const bulkyFile = this.shuffleItems(
-        generatedFiles.filter((file) => PHASE6_BULKY_IDS.has(file.id)),
-      )[0];
       const selectedFiles = [...importantFiles];
+      const extraCandidates = this.shuffleItems([
+        ...generatedFiles.filter((file) => PHASE6_LARGE_IDS.has(file.id)),
+        ...generatedFiles.filter((file) => PHASE6_BULKY_IDS.has(file.id)),
+        ...generatedFiles.filter((file) => !file.canBeImportant),
+      ]);
 
-      [largeFile, bulkyFile].forEach((file) => {
-        if (file && !usedIds.has(file.id)) {
+      for (const file of extraCandidates) {
+        if (selectedFiles.length >= PHASE6_FILE_COUNT) {
+          break;
+        }
+
+        if (!usedIds.has(file.id)) {
           selectedFiles.push(file);
           usedIds.add(file.id);
         }
-      });
+      }
 
       const remainingFiles = this.shuffleItems(
         generatedFiles.filter((file) => !usedIds.has(file.id)),
       );
 
-      while (selectedFiles.length < fileCount && remainingFiles.length > 0) {
+      while (selectedFiles.length < PHASE6_FILE_COUNT && remainingFiles.length > 0) {
         selectedFiles.push(remainingFiles.pop());
       }
 
@@ -354,10 +368,7 @@ export default class Phase6Scene extends Phaser.Scene {
         essential: importantIds.has(file.id),
       }));
       const signature = challengeFiles
-        .map(
-          (file) =>
-            `${file.id}:${file.size}:${file.essential ? "I" : "N"}`,
-        )
+        .map((file) => `${file.id}:${file.size}:${file.essential ? "I" : "N"}`)
         .join("|");
 
       if (signature !== previousSignature) {
@@ -391,10 +402,7 @@ export default class Phase6Scene extends Phaser.Scene {
         0,
         importantCount,
       );
-      const totalSize = candidates.reduce(
-        (total, file) => total + file.size,
-        0,
-      );
+      const totalSize = candidates.reduce((total, file) => total + file.size, 0);
 
       if (totalSize >= 220 && totalSize <= 680) {
         return candidates;
@@ -441,19 +449,10 @@ export default class Phase6Scene extends Phaser.Scene {
         size: 480,
         essential: false,
       },
-      {
-        id: "image",
-        name: "imagem.png",
-        type: "PNG",
-        size: 30,
-        essential: false,
-      },
     ];
 
     this.phase6Files = this.shuffleItems(files);
-    this.phase6ImportantFiles = this.phase6Files.filter(
-      (file) => file.essential,
-    );
+    this.phase6ImportantFiles = this.phase6Files.filter((file) => file.essential);
     this.phase6ChallengeSignature = this.phase6Files
       .map((file) => `${file.id}:${file.size}`)
       .join("|");
@@ -473,336 +472,223 @@ export default class Phase6Scene extends Phaser.Scene {
     return shuffled;
   }
 
-  createObjectivePanel() {
-    this.addToStage(
-      createRoundedPanel(this, 480, 67, 760, 42, {
-        fill: 0x101f35,
-        stroke: 0xffd166,
-        strokeAlpha: 0.38,
-        radius: 11,
-        shadow: false,
-      }),
-    );
-
-    this.addToStage(
-      this.add
-        .text(480, 67, "Objetivo: Transfira os arquivos importantes com segurança.", {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "15px",
-          fontStyle: "900",
-          color: "#ffd166",
-          align: "center",
-        })
-        .setOrigin(0.5),
-    );
+  updateStep(step) {
+    this.phase6CurrentStep = step;
+    this.phase6StepNumberText.setText(`Etapa ${step} de 4`);
+    this.phase6ObjectiveText.setText(PHASE6_OBJECTIVES[step - 1]);
+    this.renderCurrentStep();
   }
 
-  createStepIndicator() {
-    this.addToStage(
-      createRoundedPanel(this, 480, 113, 840, 36, {
-        fill: 0x091424,
-        stroke: 0x70b7ff,
-        strokeAlpha: 0.28,
-        radius: 10,
-        shadow: false,
-        highlight: false,
-      }),
-    );
+  renderCurrentStep() {
+    this.tweens.killTweensOf(this.phase6Body);
+    this.phase6Body.removeAll(true);
+    this.phase6FileCards.clear();
+    this.phase6CapacityBack = null;
+    this.phase6CapacityFill = null;
+    this.phase6CapacityText = null;
+    this.phase6SelectionSummary = null;
+    this.phase6ProgressLabel = null;
+    this.phase6ProgressFill = null;
+    this.phase6FlashContainer = null;
+    this.phase6FlashGlow = null;
 
-    this.phase6StepNumberText = this.add
-      .text(151, 113, "Etapa 1 de 4", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "7px",
-        color: "#ffd166",
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase6StepNumberText);
+    if (this.phase6CurrentStep === 1) {
+      this.renderSelectionStep();
+    } else if (this.phase6CurrentStep === 2) {
+      this.renderCopyStep();
+    } else if (this.phase6CurrentStep === 3) {
+      this.renderTransferStep();
+    } else {
+      this.renderEjectStep();
+    }
 
-    const connector = this.add.graphics();
-    connector.lineStyle(3, 0x34465d, 0.75);
-    connector.lineBetween(298, 113, 352, 113);
-    connector.lineBetween(488, 113, 542, 113);
-    connector.lineBetween(678, 113, 732, 113);
-    this.addToStage(connector);
-
-    const positions = [235, 425, 615, 805];
-
-    PHASE6_STEPS.forEach((label, index) => {
-      const container = this.add.container(positions[index], 113);
-      const background = this.add
-        .rectangle(0, 0, 150, 25, 0x13283a, 1)
-        .setStrokeStyle(2, 0x40566d, 0.7);
-      const text = this.add
-        .text(0, 0, String(index + 1), {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
-          color: "#8da2bd",
-        })
-        .setOrigin(0.5);
-
-      container.add([background, text]);
-      this.addToStage(container);
-      this.phase6StepCards.push({ container, background, text });
+    this.phase6Body.setAlpha(0);
+    this.tweens.add({
+      targets: this.phase6Body,
+      alpha: 1,
+      duration: 180,
+      ease: "Sine.out",
     });
-
-    this.phase6StepTitleText = this.add
-      .text(480, 145, PHASE6_STEPS[0], {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "20px",
-        fontStyle: "900",
-        color: "#f1f7ff",
-        align: "center",
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase6StepTitleText);
   }
 
-  createTransferLayout() {
-    this.addToStage(
-      createRoundedPanel(this, 480, 205, 850, 136, {
+  renderSelectionStep() {
+    this.addToBody(
+      createRoundedPanel(this, 480, 298, 760, 318, {
         fill: 0x0b1729,
-        stroke: 0x70b7ff,
-        strokeAlpha: 0.28,
+        stroke: 0x62e7f2,
+        strokeAlpha: 0.3,
         radius: 16,
       }),
     );
 
-    this.createComputer(170, 198, "COMPUTADOR ORIGEM", 0x62e7f2, true);
-    this.createFlashDrive(480, 198);
-    this.createComputer(790, 198, "COMPUTADOR DESTINO", 0x8ef28b, false);
-    this.phase6ArrowToFlash = this.createFlowArrow(350, 198);
-    this.phase6ArrowToDestination = this.createFlowArrow(640, 198);
+    this.addToBody(
+      this.add
+        .text(300, 166, "ARQUIVOS", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "9px",
+          color: "#62e7f2",
+        })
+        .setOrigin(0.5),
+    );
 
-    this.addToStage(
+    const rows = [205, 246, 287, 328, 369];
+    this.phase6Files.forEach((file, index) => {
+      this.createFileRow(file, 300, rows[index]);
+    });
+
+    this.createCapacityPanel(698, 286);
+    this.phase6CopyButton = this.createBodyButton(
+      480,
+      444,
+      288,
+      "COPIAR PARA O PEN DRIVE",
+      () => this.copyToFlashDrive(),
+      {
+        border: 0x70b7ff,
+        hover: 0x1c5264,
+        fontSize: "7px",
+        height: 44,
+      },
+    );
+    this.updateCapacityBar();
+  }
+
+  renderCopyStep() {
+    this.addToBody(
+      createRoundedPanel(this, 480, 302, 620, 270, {
+        fill: 0x0b1729,
+        stroke: 0x70b7ff,
+        strokeAlpha: 0.34,
+        radius: 16,
+      }),
+    );
+
+    this.createMiniComputer(302, 267, "ORIGEM", 0x62e7f2, "ENVIANDO");
+    this.createFlowArrow(402, 267, 0x70b7ff);
+    this.createFlashDrive(575, 267, "COPIANDO");
+    this.createProgressBar(480, 372, "Copiando arquivos para o pen drive...");
+  }
+
+  renderTransferStep() {
+    this.addToBody(
+      createRoundedPanel(this, 480, 302, 660, 276, {
+        fill: 0x0b1729,
+        stroke: 0x8ef28b,
+        strokeAlpha: 0.34,
+        radius: 16,
+      }),
+    );
+
+    this.createFlashDrive(344, 260, "PRONTO");
+    this.createFlowArrow(468, 260, 0x8ef28b);
+    this.createMiniComputer(650, 260, "DESTINO", 0x8ef28b, "AGUARDANDO");
+    this.createProgressBar(
+      480,
+      356,
+      this.phase6IsTransferred ? "Arquivos transferidos." : "Pronto para transferir.",
+    );
+
+    this.phase6TransferButton = this.createBodyButton(
+      480,
+      436,
+      300,
+      "TRANSFERIR PARA O DESTINO",
+      () => this.transferToDestination(),
+      {
+        border: 0x8ef28b,
+        hover: 0x246a69,
+        fontSize: "7px",
+        height: 44,
+      },
+    );
+  }
+
+  renderEjectStep() {
+    this.addToBody(
+      createRoundedPanel(this, 480, 302, 560, 276, {
+        fill: 0x0b1729,
+        stroke: 0xffd166,
+        strokeAlpha: 0.36,
+        radius: 16,
+      }),
+    );
+
+    this.createFlashDrive(480, 238, "TRANSFERIDO");
+
+    this.addToBody(
       this.add
         .text(
           480,
-          257,
-          "Dica: Remover o pen drive durante a gravação pode corromper arquivos.",
+          338,
+          "A ejecao segura avisa ao sistema que a gravacao terminou\ne evita corromper arquivos.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "12px",
+            fontSize: "16px",
             fontStyle: "800",
-            color: "#c7d7e8",
+            color: "#dce8f5",
             align: "center",
+            lineSpacing: 5,
+            wordWrap: { width: 480 },
           },
         )
         .setOrigin(0.5),
     );
-  }
 
-  createComputer(x, y, title, accent, isSource) {
-    const container = this.add.container(x, y);
-    const graphics = this.add.graphics();
-
-    graphics.fillStyle(0x101f35, 1);
-    graphics.fillRoundedRect(-78, -42, 156, 78, 10);
-    graphics.lineStyle(2, accent, 0.58);
-    graphics.strokeRoundedRect(-78, -42, 156, 78, 10);
-    graphics.fillStyle(0x07101f, 1);
-    graphics.fillRoundedRect(-64, -28, 128, 48, 6);
-    graphics.fillStyle(accent, 0.14);
-    graphics.fillRoundedRect(-53, -17, isSource ? 72 : 42, 7, 2);
-    graphics.fillRoundedRect(-53, -3, isSource ? 96 : 74, 7, 2);
-    graphics.fillRoundedRect(-53, 11, isSource ? 58 : 90, 5, 2);
-    graphics.fillStyle(0x263a52, 1);
-    graphics.fillRoundedRect(-28, 36, 56, 7, 3);
-    graphics.fillRoundedRect(-48, 43, 96, 6, 3);
-    container.add(graphics);
-
-    const titleText = this.add
-      .text(0, -53, title, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "6px",
-        color: this.toCssColor(accent),
-      })
-      .setOrigin(0.5);
-    container.add(titleText);
-
-    const statusText = this.add
-      .text(0, -2, isSource ? "ARQUIVOS\nPRONTOS" : "AGUARDANDO", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "6px",
-        color: isSource ? "#62e7f2" : "#8da2bd",
-        align: "center",
-        lineSpacing: 4,
-      })
-      .setOrigin(0.5);
-    container.add(statusText);
-
-    this.addToStage(container);
-
-    if (isSource) {
-      this.phase6SourceContainer = container;
-      this.phase6SourceStatusText = statusText;
-    } else {
-      this.phase6DestinationContainer = container;
-      this.phase6DestinationStatusText = statusText;
-    }
-  }
-
-  createFlashDrive(x, y) {
-    this.phase6FlashContainer = this.add.container(x, y);
-    this.addToStage(this.phase6FlashContainer);
-
-    const drive = this.add.graphics();
-    drive.fillStyle(0xb7c9d6, 1);
-    drive.fillRoundedRect(-67, -18, 32, 36, 5);
-    drive.fillStyle(0x07101f, 0.75);
-    drive.fillRect(-59, -10, 8, 8);
-    drive.fillRect(-46, -10, 8, 8);
-    drive.fillStyle(0x13283a, 1);
-    drive.fillRoundedRect(-39, -30, 106, 60, 13);
-    drive.lineStyle(3, 0x70b7ff, 0.86);
-    drive.strokeRoundedRect(-39, -30, 106, 60, 13);
-    drive.fillStyle(0x17344f, 1);
-    drive.fillRoundedRect(-25, -19, 78, 38, 8);
-    drive.fillStyle(0x8ef28b, 0.88);
-    drive.fillCircle(35, 0, 7);
-    drive.fillStyle(0x62e7f2, 0.22);
-    drive.fillRoundedRect(-14, -10, 30, 7, 3);
-    drive.fillRoundedRect(-14, 4, 38, 7, 3);
-    this.phase6FlashContainer.add(drive);
-
-    const label = this.add
-      .text(0, -48, "PEN DRIVE 1 GB", {
-        fontFamily: '"Press Start 2P", monospace',
+    this.phase6EjectButton = this.createBodyButton(
+      480,
+      436,
+      270,
+      "EJETAR COM SEGURANCA",
+      () => this.ejectSafely(),
+      {
+        border: 0xffd166,
+        hover: 0x5c4b22,
         fontSize: "7px",
-        color: "#70b7ff",
-      })
-      .setOrigin(0.5);
-    this.phase6FlashContainer.add(label);
-
-    this.phase6FlashStatusText = this.add
-      .text(13, 44, "VAZIO", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "6px",
-        color: "#8da2bd",
-      })
-      .setOrigin(0.5);
-    this.phase6FlashContainer.add(this.phase6FlashStatusText);
-
-    const unsafeHitArea = this.add
-      .rectangle(0, 0, 150, 92, 0xffffff, 0.001)
-      .setInteractive({ useHandCursor: true });
-    this.phase6FlashContainer.add(unsafeHitArea);
-    unsafeHitArea.on("pointerdown", () => this.removeIncorrectly());
-
-    this.phase6FlashGlow = this.add
-      .rectangle(x, y, 150, 82, 0x70b7ff, 0)
-      .setStrokeStyle(3, 0x70b7ff, 0);
-    this.addToStage(this.phase6FlashGlow);
-  }
-
-  createFlowArrow(x, y) {
-    const container = this.add.container(x, y);
-    const line = this.add.rectangle(-8, 0, 92, 5, 0x34465d, 0.72);
-    const head = this.add.triangle(
-      51,
-      0,
-      -12,
-      -11,
-      12,
-      0,
-      -12,
-      11,
-      0x34465d,
-      0.72,
+        height: 44,
+      },
     );
-
-    container.add([line, head]);
-    this.addToStage(container);
-    return { container, line, head };
   }
 
-  createFileList() {
-    const panel = createRoundedPanel(this, 310, 374, 560, 184, {
-      fill: 0x0b1729,
-      stroke: 0x62e7f2,
-      strokeAlpha: 0.3,
-      radius: 14,
-    });
-    const title = this.add
-      .text(310, 295, "ARQUIVOS DISPONÍVEIS", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "8px",
-        color: "#62e7f2",
-      })
-      .setOrigin(0.5);
-
-    this.phase6FileListObjects.push(panel, title);
-    this.addToStage([panel, title]);
-
-    const columns = [175, 445];
-    const rows = [326, 363, 400];
-
-    this.phase6Files.forEach((file, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
-      this.createFileCard(file, columns[column], rows[row]);
-    });
-  }
-
-  createFileCard(file, x, y) {
+  createFileRow(file, x, y) {
     const container = this.add.container(x, y);
     const background = this.add
-      .rectangle(0, 0, 250, 30, 0x13283a, 1)
+      .rectangle(0, 0, 360, 32, 0x13283a, 1)
       .setStrokeStyle(2, 0x40566d, 0.78)
       .setInteractive({ useHandCursor: true });
-    const icon = this.add
-      .rectangle(-108, 0, 25, 23, this.getFileColor(file.type), 0.94)
-      .setStrokeStyle(1, 0xf1f7ff, 0.34);
-    const typeText = this.add
-      .text(-108, 0, file.type, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: file.type.length > 3 ? "4px" : "5px",
-        color: "#07101f",
-      })
-      .setOrigin(0.5);
     const nameText = this.add
-      .text(-91, -6, file.name, {
+      .text(-162, -1, file.name, {
         fontFamily: '"Nunito", sans-serif',
-        fontSize: "10px",
+        fontSize: "14px",
         fontStyle: "900",
         color: "#f1f7ff",
       })
       .setOrigin(0, 0.5);
     const sizeText = this.add
-      .text(-91, 8, `${file.size} MB`, {
+      .text(82, -1, `${file.size} MB`, {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "5px",
+        fontSize: "6px",
         color: "#9fb1c6",
       })
       .setOrigin(0, 0.5);
     const importantTag = this.add
-      .text(116, -7, "IMPORTANTE", {
+      .text(162, -1, "!", {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "4px",
+        fontSize: "8px",
         color: "#ffd166",
-        backgroundColor: "#493d1c",
-        padding: { left: 3, right: 3, top: 2, bottom: 2 },
       })
-      .setOrigin(1, 0.5)
+      .setOrigin(0.5)
       .setVisible(file.essential);
     const selectedMark = this.add
-      .text(116, 8, "OK", {
+      .text(162, -1, "OK", {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "5px",
+        fontSize: "6px",
         color: "#8ef28b",
       })
-      .setOrigin(1, 0.5)
-      .setVisible(false);
+      .setOrigin(0.5)
+      .setVisible(this.phase6SelectedIds.has(file.id));
 
-    container.add([
-      background,
-      icon,
-      typeText,
-      nameText,
-      sizeText,
-      importantTag,
-      selectedMark,
-    ]);
-    this.addToStage(container);
+    container.add([background, nameText, sizeText, importantTag, selectedMark]);
+    this.addToBody(container);
 
     background.on("pointerover", () => {
       if (!this.phase6IsCopied && !this.phase6IsBusy) {
@@ -823,67 +709,48 @@ export default class Phase6Scene extends Phaser.Scene {
       background,
       selectedMark,
     });
+    this.updateFileCard(this.phase6FileCards.get(file.id), this.phase6SelectedIds.has(file.id), false);
   }
 
-  createStatusPanel() {
-    const panel = createRoundedPanel(this, 760, 374, 300, 184, {
-      fill: 0x0b1729,
-      stroke: 0x70b7ff,
-      strokeAlpha: 0.32,
-      radius: 14,
-    });
-    const title = this.add
-      .text(760, 295, "PEN DRIVE", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "8px",
-        color: "#70b7ff",
-      })
-      .setOrigin(0.5);
-    const deviceLabel = this.add
-      .text(760, 319, "Capacidade: 1000 MB", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "13px",
-        fontStyle: "900",
-        color: "#ffd166",
-      })
-      .setOrigin(0.5);
+  createCapacityPanel(x, y) {
+    this.addToBody(
+      createRoundedPanel(this, x, y, 250, 142, {
+        fill: 0x101f35,
+        stroke: 0x70b7ff,
+        strokeAlpha: 0.3,
+        radius: 14,
+        shadow: false,
+      }),
+    );
+
+    this.addToBody(
+      this.add
+        .text(x, y - 50, "PEN DRIVE 1 GB", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
+          color: "#70b7ff",
+        })
+        .setOrigin(0.5),
+    );
 
     this.phase6CapacityBack = this.add
-      .rectangle(640, 344, 240, 18, 0x07101f, 1)
+      .rectangle(x - 100, y - 12, 200, 18, 0x07101f, 1)
       .setOrigin(0, 0.5)
       .setStrokeStyle(2, 0x40566d, 0.9);
     this.phase6CapacityFill = this.add
-      .rectangle(643, 344, 234, 12, 0x8ef28b, 1)
+      .rectangle(x - 97, y - 12, 194, 12, 0x8ef28b, 1)
       .setOrigin(0, 0.5)
       .setScale(0, 1);
     this.phase6CapacityText = this.add
-      .text(760, 366, "Usado: 0 MB / 1000 MB", {
+      .text(x, y + 15, "0 / 1000 MB", {
         fontFamily: '"Nunito", sans-serif',
-        fontSize: "12px",
+        fontSize: "13px",
         fontStyle: "900",
         color: "#dce8f5",
       })
       .setOrigin(0.5);
-
-    this.phase6ProgressLabel = this.add
-      .text(760, 343, "Aguardando", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "14px",
-        fontStyle: "900",
-        color: "#8da2bd",
-      })
-      .setOrigin(0.5);
-    this.phase6ProgressBack = this.add
-      .rectangle(640, 370, 240, 18, 0x07101f, 1)
-      .setOrigin(0, 0.5)
-      .setStrokeStyle(1, 0x40566d, 0.9);
-    this.phase6ProgressFill = this.add
-      .rectangle(642, 370, 236, 12, 0x62e7f2, 1)
-      .setOrigin(0, 0.5)
-      .setScale(0, 1);
-
     this.phase6SelectionSummary = this.add
-      .text(760, 402, "", {
+      .text(x, y + 44, "", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "12px",
         fontStyle: "900",
@@ -892,111 +759,175 @@ export default class Phase6Scene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.phase6StatusObjects.push(panel, title);
-    this.phase6CapacityObjects.push(deviceLabel, this.phase6CapacityBack, this.phase6CapacityFill, this.phase6CapacityText, this.phase6SelectionSummary);
-    this.phase6ProgressObjects.push(this.phase6ProgressLabel, this.phase6ProgressBack, this.phase6ProgressFill);
-    this.addToStage([...this.phase6StatusObjects, ...this.phase6CapacityObjects, ...this.phase6ProgressObjects]);
+    this.addToBody([
+      this.phase6CapacityBack,
+      this.phase6CapacityFill,
+      this.phase6CapacityText,
+      this.phase6SelectionSummary,
+    ]);
   }
 
-  createControls() {
-    this.phase6ClearButton = this.createButton(
-      -300,
-      -300,
-      170,
-      "LIMPAR",
-      () => this.clearSelection(),
-      {
-        border: 0xffd166,
-        hover: 0x5c4b22,
-        fontSize: "7px",
-        height: 44,
-      },
-    );
-    this.phase6CopyButton = this.createButton(
-      480,
-      470,
-      260,
-      "COPIAR PARA O PEN DRIVE",
-      () => this.copyToFlashDrive(),
-      {
-        border: 0x70b7ff,
-        hover: 0x1c5264,
-        fontSize: "7px",
-        height: 44,
-      },
-    );
-    this.phase6TransferButton = this.createButton(
-      480,
-      470,
-      280,
-      "TRANSFERIR PARA O DESTINO",
-      () => this.transferToDestination(),
-      {
-        border: 0x8ef28b,
-        hover: 0x246a69,
-        fontSize: "7px",
-        height: 44,
-      },
-    );
-    this.phase6EjectButton = this.createButton(
-      480,
-      470,
-      260,
-      "EJETAR COM SEGURANÇA",
-      () => this.ejectSafely(),
-      {
-        border: 0xffd166,
-        hover: 0x5c4b22,
-        fontSize: "7px",
-        height: 44,
-      },
-    );
-  }
+  createMiniComputer(x, y, title, accent, status) {
+    const container = this.add.container(x, y);
+    const graphics = this.add.graphics();
 
-  createFeedbackArea() {
-    this.addToStage(
-      createRoundedPanel(this, 480, 513, 850, 32, {
-        fill: 0x091424,
-        stroke: 0x62e7f2,
-        strokeAlpha: 0.24,
-        radius: 10,
-        shadow: false,
-        highlight: false,
-      }),
-    );
+    graphics.fillStyle(0x101f35, 1);
+    graphics.fillRoundedRect(-70, -38, 140, 72, 10);
+    graphics.lineStyle(2, accent, 0.58);
+    graphics.strokeRoundedRect(-70, -38, 140, 72, 10);
+    graphics.fillStyle(0x07101f, 1);
+    graphics.fillRoundedRect(-56, -25, 112, 42, 6);
+    graphics.fillStyle(accent, 0.18);
+    graphics.fillRoundedRect(-45, -13, 78, 7, 2);
+    graphics.fillRoundedRect(-45, 1, 92, 7, 2);
+    graphics.fillStyle(0x263a52, 1);
+    graphics.fillRoundedRect(-25, 34, 50, 7, 3);
+    graphics.fillRoundedRect(-42, 41, 84, 6, 3);
+    container.add(graphics);
 
-    this.phase6MessageText = this.add
-      .text(
-        480,
-        513,
-        `Selecione os arquivos importantes.`,
-        {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "13px",
-          fontStyle: "800",
-          color: "#8da2bd",
+    container.add(
+      this.add
+        .text(0, -52, title, {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "7px",
+          color: this.toCssColor(accent),
+        })
+        .setOrigin(0.5),
+    );
+    container.add(
+      this.add
+        .text(0, -1, status, {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "6px",
+          color: "#dce8f5",
           align: "center",
-          wordWrap: { width: 800 },
-        },
-      )
+        })
+        .setOrigin(0.5),
+    );
+
+    this.addToBody(container);
+    return container;
+  }
+
+  createFlashDrive(x, y, status) {
+    this.phase6FlashContainer = this.add.container(x, y);
+    const drive = this.add.graphics();
+
+    drive.fillStyle(0xb7c9d6, 1);
+    drive.fillRoundedRect(-68, -18, 32, 36, 5);
+    drive.fillStyle(0x07101f, 0.75);
+    drive.fillRect(-59, -10, 8, 8);
+    drive.fillRect(-46, -10, 8, 8);
+    drive.fillStyle(0x13283a, 1);
+    drive.fillRoundedRect(-40, -31, 108, 62, 13);
+    drive.lineStyle(3, 0x70b7ff, 0.86);
+    drive.strokeRoundedRect(-40, -31, 108, 62, 13);
+    drive.fillStyle(0x17344f, 1);
+    drive.fillRoundedRect(-26, -20, 80, 40, 8);
+    drive.fillStyle(0x8ef28b, 0.88);
+    drive.fillCircle(35, 0, 7);
+    drive.fillStyle(0x62e7f2, 0.22);
+    drive.fillRoundedRect(-14, -10, 30, 7, 3);
+    drive.fillRoundedRect(-14, 4, 38, 7, 3);
+    this.phase6FlashContainer.add(drive);
+
+    this.phase6FlashContainer.add(
+      this.add
+        .text(0, -50, "PEN DRIVE", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
+          color: "#70b7ff",
+        })
+        .setOrigin(0.5),
+    );
+
+    this.phase6FlashStatusText = this.add
+      .text(12, 46, status, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "6px",
+        color: "#8da2bd",
+      })
       .setOrigin(0.5);
-    this.addToStage(this.phase6MessageText);
+    this.phase6FlashContainer.add(this.phase6FlashStatusText);
+
+    const unsafeHitArea = this.add
+      .rectangle(0, 0, 150, 96, 0xffffff, 0.001)
+      .setInteractive({ useHandCursor: true });
+    this.phase6FlashContainer.add(unsafeHitArea);
+    unsafeHitArea.on("pointerdown", () => this.removeIncorrectly());
+
+    this.phase6FlashGlow = this.add
+      .rectangle(x, y, 150, 84, 0x70b7ff, 0)
+      .setStrokeStyle(3, 0x70b7ff, 0);
+
+    this.addToBody([this.phase6FlashContainer, this.phase6FlashGlow]);
+    return this.phase6FlashContainer;
+  }
+
+  createFlowArrow(x, y, color) {
+    const container = this.add.container(x, y);
+    const line = this.add.rectangle(-8, 0, 104, 5, color, 0.82);
+    const head = this.add.triangle(
+      58,
+      0,
+      -12,
+      -11,
+      12,
+      0,
+      -12,
+      11,
+      color,
+      0.82,
+    );
+
+    container.add([line, head]);
+    this.addToBody(container);
+
+    this.tweens.add({
+      targets: container,
+      scaleX: 1.06,
+      duration: 430,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
+
+    return container;
+  }
+
+  createProgressBar(x, y, label) {
+    this.phase6ProgressLabel = this.add
+      .text(x, y - 24, label, {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "15px",
+        fontStyle: "900",
+        color: "#8da2bd",
+      })
+      .setOrigin(0.5);
+    const progressBack = this.add
+      .rectangle(x - 150, y + 8, 300, 18, 0x07101f, 1)
+      .setOrigin(0, 0.5)
+      .setStrokeStyle(1, 0x40566d, 0.9);
+    this.phase6ProgressFill = this.add
+      .rectangle(x - 148, y + 8, 296, 12, 0x62e7f2, 1)
+      .setOrigin(0, 0.5)
+      .setScale(this.phase6IsTransferred ? 1 : 0, 1);
+
+    this.addToBody([
+      this.phase6ProgressLabel,
+      progressBack,
+      this.phase6ProgressFill,
+    ]);
   }
 
   toggleFileSelection(fileId) {
     if (this.phase6IsBusy) {
-      this.showFeedback(
-        "Aguarde a operação terminar.",
-        "warning",
-      );
+      this.showFeedback("Aguarde a operacao terminar.", "warning");
       return;
     }
 
     if (this.phase6IsCopied) {
-      this.showFeedback(
-        "Arquivos copiados.",
-        "neutral",
-      );
+      this.showFeedback("Arquivos copiados.", "neutral");
       return;
     }
 
@@ -1018,17 +949,20 @@ export default class Phase6Scene extends Phaser.Scene {
 
     if (!wasOverCapacity && this.isOverCapacity()) {
       this.updateScore(-PHASE6_CAPACITY_PENALTY);
-      this.showFeedback(
-        file.size > PHASE6_CAPACITY_MB
-          ? "Espaço insuficiente."
-          : "Espaço insuficiente.",
-        "error",
-      );
+      this.showFeedback("Espaco insuficiente.", "error");
       this.shakeCapacityBar();
+    }
+
+    if (file.essential && isSelected) {
+      this.showFeedback("Arquivo importante selecionado.", "success");
     }
   }
 
-  updateFileCard(card, isSelected) {
+  updateFileCard(card, isSelected, animate = true) {
+    if (!card) {
+      return;
+    }
+
     card.selectedMark.setVisible(isSelected);
     card.background
       .setFillStyle(isSelected ? 0x245064 : 0x13283a)
@@ -1038,39 +972,21 @@ export default class Phase6Scene extends Phaser.Scene {
         isSelected ? 1 : 0.78,
       );
 
-    this.tweens.add({
-      targets: card.container,
-      scale: isSelected ? 1.025 : 1,
-      duration: 120,
-      ease: "Back.out",
-    });
-  }
-
-  clearSelection() {
-    if (this.phase6IsBusy) {
-      this.showFeedback("Aguarde a operação terminar.", "warning");
-      return;
+    if (animate) {
+      this.tweens.add({
+        targets: card.container,
+        scale: isSelected ? 1.025 : 1,
+        duration: 120,
+        ease: "Back.out",
+      });
     }
-
-    if (this.phase6IsCopied) {
-      this.showFeedback(
-        "A seleção está bloqueada porque a cópia já terminou.",
-        "neutral",
-      );
-      return;
-    }
-
-    if (this.phase6SelectedIds.size === 0) {
-      return;
-    }
-
-    this.phase6SelectedIds.clear();
-    this.phase6FileCards.forEach((card) => this.updateFileCard(card, false));
-    this.updateCapacityBar();
-    this.showFeedback("Arquivo removido.", "warning");
   }
 
   updateCapacityBar() {
+    if (!this.phase6CapacityFill) {
+      return;
+    }
+
     const selectedSize = this.getSelectedSize();
     const ratio = selectedSize / PHASE6_CAPACITY_MB;
     const displayRatio = Phaser.Math.Clamp(ratio, 0, 1);
@@ -1092,7 +1008,7 @@ export default class Phase6Scene extends Phaser.Scene {
     });
 
     this.phase6CapacityText
-      .setText(`Usado: ${selectedSize} MB / ${PHASE6_CAPACITY_MB} MB`)
+      .setText(`${selectedSize} / ${PHASE6_CAPACITY_MB} MB`)
       .setColor(
         overCapacity ? "#ff9b78" : nearCapacity ? "#ffd166" : "#dce8f5",
       );
@@ -1101,7 +1017,7 @@ export default class Phase6Scene extends Phaser.Scene {
       this.phase6SelectedIds.has(file.id),
     ).length;
     this.phase6SelectionSummary.setText(
-      `Selecionados: ${this.phase6SelectedIds.size}  |  Importantes: ${importantSelected}/${this.phase6ImportantFiles.length}`,
+      `Importantes: ${importantSelected}/${this.phase6ImportantFiles.length}`,
     );
   }
 
@@ -1111,7 +1027,7 @@ export default class Phase6Scene extends Phaser.Scene {
     }
 
     if (this.phase6IsBusy) {
-      this.showFeedback("Aguarde a operação terminar.", "warning");
+      this.showFeedback("Aguarde a operacao terminar.", "warning");
       return;
     }
 
@@ -1126,14 +1042,14 @@ export default class Phase6Scene extends Phaser.Scene {
     }
 
     if (this.isOverCapacity()) {
-      this.showFailure("Espaço insuficiente.");
+      this.showFailure("Espaco insuficiente.");
       this.shakeCapacityBar();
       return;
     }
 
     const missingFiles = this.getMissingImportantFiles();
     if (missingFiles.length > 0) {
-      this.showFailure("Alguns arquivos importantes ficaram de fora.");
+      this.showFailure("Faltam arquivos importantes.");
       this.animateMissingImportantFiles(missingFiles);
       return;
     }
@@ -1141,18 +1057,14 @@ export default class Phase6Scene extends Phaser.Scene {
     this.phase6IsBusy = true;
     this.updateStep(2);
     this.showFeedback("Copiando arquivos para o pen drive...", "neutral");
-    this.createTransferPackets(255, 198, 420, 198, 0x70b7ff);
+    this.createTransferPackets(325, 267, 525, 267, 0x70b7ff);
     this.animateProgress("COPIANDO", 0x70b7ff, () => {
       this.phase6IsBusy = false;
       this.phase6IsCopied = true;
       this.phase6CopiedIds = new Set(this.phase6SelectedIds);
-      this.phase6FlashStatusText.setText("ARQUIVOS\nCOPIADOS").setColor("#70b7ff");
-      this.phase6ProgressLabel
-        .setText("Arquivos copiados.")
-        .setColor("#70b7ff");
       this.showFeedback("Arquivos copiados.", "success");
       this.pulseFlashDrive(0x70b7ff);
-      this.updateStep(3);
+      this.time.delayedCall(450, () => this.updateStep(3));
     });
   }
 
@@ -1162,45 +1074,30 @@ export default class Phase6Scene extends Phaser.Scene {
     }
 
     if (this.phase6IsBusy) {
-      this.showFeedback("Aguarde a operação terminar.", "warning");
+      this.showFeedback("Aguarde a operacao terminar.", "warning");
       return;
     }
 
     if (!this.phase6IsCopied) {
-      this.showFailure("Primeiro copie os arquivos para o pen drive.");
+      this.showFailure("Primeiro copie para o pen drive.");
       return;
     }
 
     if (this.phase6IsTransferred) {
-      this.showFeedback(
-        "Arquivos transferidos.",
-        "neutral",
-      );
+      this.showFeedback("Arquivos transferidos.", "neutral");
       return;
     }
 
     this.phase6IsBusy = true;
     this.updateStep(3);
-    this.showFeedback(
-      "Transferindo arquivos para o computador destino...",
-      "neutral",
-    );
-    this.createTransferPackets(545, 198, 705, 198, 0x8ef28b);
+    this.showFeedback("Transferindo para o computador destino...", "neutral");
+    this.createTransferPackets(390, 260, 590, 260, 0x8ef28b);
     this.animateProgress("TRANSFERINDO", 0x8ef28b, () => {
       this.phase6IsBusy = false;
       this.phase6IsTransferred = true;
-      this.phase6DestinationStatusText
-        .setText("ARQUIVOS\nRECEBIDOS")
-        .setColor("#8ef28b");
-      this.phase6ProgressLabel
-        .setText("Arquivos transferidos.")
-        .setColor("#8ef28b");
-      this.showFeedback(
-        "Arquivos transferidos.",
-        "success",
-      );
+      this.showFeedback("Arquivos transferidos.", "success");
       this.pulseFlashDrive(0x8ef28b);
-      this.updateStep(4);
+      this.time.delayedCall(450, () => this.updateStep(4));
     });
   }
 
@@ -1210,38 +1107,25 @@ export default class Phase6Scene extends Phaser.Scene {
     }
 
     if (this.phase6IsBusy) {
-      this.showFailure(
-        "Remover durante a gravação pode corromper arquivos.",
-      );
+      this.showFailure("Remover durante a gravacao pode corromper arquivos.");
       return;
     }
 
     if (!this.phase6IsCopied) {
-      this.showFailure("Primeiro copie os arquivos para o pen drive.");
+      this.showFailure("Primeiro copie para o pen drive.");
       return;
     }
 
     if (!this.phase6IsTransferred) {
-      this.showFailure(
-        "Transfira os arquivos ao destino antes de ejetar.",
-      );
+      this.showFailure("Transfira os arquivos antes de ejetar.");
       return;
     }
 
     this.phase6IsEjected = true;
     this.phase6IsComplete = true;
-    this.updateStep(4);
-    this.disableChallengeControls();
-    this.phase6FlashStatusText
-      .setText("EJETADO\nCOM SEGURANÇA")
-      .setColor("#ffd166");
-    this.phase6ProgressLabel
-      .setText("Pen drive ejetado.")
-      .setColor("#ffd166");
-    this.showFeedback("Pen drive ejetado com segurança!", "success");
+    this.showFeedback("Pen drive ejetado com seguranca!", "success");
     this.pulseFlashDrive(0xffd166);
-
-    this.time.delayedCall(1100, () => this.showConclusion());
+    this.time.delayedCall(900, () => this.showConclusion());
   }
 
   removeIncorrectly() {
@@ -1250,21 +1134,20 @@ export default class Phase6Scene extends Phaser.Scene {
     }
 
     if (this.phase6IsBusy) {
-      this.showFailure(
-        "Remover durante a gravação pode corromper arquivos.",
-      );
+      this.showFailure("Remover durante a gravacao pode corromper arquivos.");
       return;
     }
 
-    this.showFailure(
-      "Tente ejetar com segurança.",
-    );
+    this.showFailure("Use o botao de ejecao segura.");
   }
 
   animateProgress(label, color, onComplete) {
-    this.phase6ProgressFill
-      .setFillStyle(color, 1)
-      .setScale(0, 1);
+    if (!this.phase6ProgressFill || !this.phase6ProgressLabel) {
+      onComplete();
+      return;
+    }
+
+    this.phase6ProgressFill.setFillStyle(color, 1).setScale(0, 1);
     this.phase6ProgressLabel
       .setText(`${label} 0%`)
       .setColor(this.toCssColor(color));
@@ -1276,9 +1159,7 @@ export default class Phase6Scene extends Phaser.Scene {
       ease: "Sine.inOut",
       onUpdate: () => {
         const percent = Math.round(this.phase6ProgressFill.scaleX * 100);
-        this.phase6ProgressLabel.setText(
-          `${label} ${percent}%`,
-        );
+        this.phase6ProgressLabel.setText(`${label} ${percent}%`);
       },
       onComplete,
     });
@@ -1290,7 +1171,7 @@ export default class Phase6Scene extends Phaser.Scene {
         .rectangle(fromX, fromY, 8, 8, color, 0.92)
         .setRotation(Math.PI / 4)
         .setBlendMode(Phaser.BlendModes.ADD);
-      this.addToStage(packet);
+      this.addToBody(packet);
 
       this.tweens.add({
         targets: packet,
@@ -1304,136 +1185,6 @@ export default class Phase6Scene extends Phaser.Scene {
         onComplete: () => packet.destroy(),
       });
     }
-  }
-
-  updateStep(step) {
-    this.phase6CurrentStep = step;
-    this.phase6StepNumberText.setText(`Etapa ${step} de 4`);
-    this.phase6StepTitleText.setText(PHASE6_STEPS[step - 1]);
-
-    this.phase6StepCards.forEach((card, index) => {
-      const stepNumber = index + 1;
-      const completed = stepNumber < step;
-      const current = stepNumber === step;
-      const fill = completed ? 0x173d35 : current ? 0x17344f : 0x13283a;
-      const border = completed
-        ? 0x8ef28b
-        : current
-          ? 0x70b7ff
-          : 0x40566d;
-      const textColor = completed
-        ? "#8ef28b"
-        : current
-          ? "#f1f7ff"
-          : "#6f849d";
-
-      card.background
-        .setFillStyle(fill, 1)
-        .setStrokeStyle(current ? 3 : 2, border, current || completed ? 1 : 0.7);
-      card.text.setColor(textColor);
-    });
-
-    this.updateFlowVisual();
-    this.updateStageVisibility();
-    this.updateControlEmphasis();
-  }
-
-  updateStageVisibility() {
-    const step = this.phase6CurrentStep;
-    this.setObjectsVisible(this.phase6FileListObjects, step === 1);
-    this.setObjectsVisible(this.phase6StatusObjects, step <= 3);
-    this.setObjectsVisible(this.phase6CapacityObjects, step === 1);
-    this.setObjectsVisible(this.phase6ProgressObjects, step === 2 || step === 3);
-
-    this.phase6FileCards.forEach(({ background }) => {
-      if (step === 1 && !this.phase6IsCopied && !this.phase6IsBusy) {
-        background.setInteractive({ useHandCursor: true });
-      } else {
-        background.disableInteractive();
-      }
-    });
-
-    if (step === 2) {
-      this.phase6ProgressLabel.setText("Copiando arquivos para o pen drive...");
-    } else if (step === 3 && !this.phase6IsTransferred) {
-      this.phase6ProgressLabel.setText("Pronto para transferir.");
-      this.phase6ProgressFill.setScale(0, 1);
-    }
-  }
-
-  updateFlowVisual() {
-    const leftColor =
-      this.phase6CurrentStep <= 2 ? 0x70b7ff : 0x8ef28b;
-    const rightColor =
-      this.phase6CurrentStep < 3 ? 0x40566d : 0x8ef28b;
-
-    this.setArrowColor(
-      this.phase6ArrowToFlash,
-      leftColor,
-      this.phase6CurrentStep <= 2 ? 1 : 0.75,
-    );
-    this.setArrowColor(
-      this.phase6ArrowToDestination,
-      rightColor,
-      this.phase6CurrentStep >= 3 ? 1 : 0.55,
-    );
-
-    this.tweens.killTweensOf([
-      this.phase6ArrowToFlash.container,
-      this.phase6ArrowToDestination.container,
-    ]);
-    this.phase6ArrowToFlash.container.setScale(1);
-    this.phase6ArrowToDestination.container.setScale(1);
-
-    const activeArrow =
-      this.phase6CurrentStep <= 2
-        ? this.phase6ArrowToFlash.container
-        : this.phase6CurrentStep === 3
-          ? this.phase6ArrowToDestination.container
-          : null;
-
-    if (activeArrow) {
-      this.tweens.add({
-        targets: activeArrow,
-        scaleX: 1.07,
-        duration: 420,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.inOut",
-      });
-    }
-  }
-
-  updateControlEmphasis() {
-    const controls = [
-      { button: this.phase6ClearButton, visible: false },
-      {
-        button: this.phase6CopyButton,
-        visible: this.phase6CurrentStep === 1,
-      },
-      {
-        button: this.phase6TransferButton,
-        visible: this.phase6CurrentStep === 3,
-      },
-      {
-        button: this.phase6EjectButton,
-        visible: this.phase6CurrentStep === 4,
-      },
-    ];
-
-    controls.forEach(({ button, visible }) => {
-      button.setVisible(visible);
-      button.setEnabled(visible && !this.phase6IsBusy);
-    });
-  }
-
-  setObjectsVisible(objects, visible) {
-    objects.forEach((object) => object.setVisible(visible));
-  }
-
-  setArrowColor(arrow, color, alpha) {
-    arrow.line.setFillStyle(color, alpha);
-    arrow.head.setFillStyle(color, alpha);
   }
 
   getSelectedSize() {
@@ -1459,6 +1210,11 @@ export default class Phase6Scene extends Phaser.Scene {
   animateMissingImportantFiles(files) {
     files.forEach((file) => {
       const card = this.phase6FileCards.get(file.id);
+
+      if (!card) {
+        return;
+      }
+
       card.background.setStrokeStyle(3, 0xff7b68, 1);
       this.tweens.add({
         targets: card.container,
@@ -1467,15 +1223,19 @@ export default class Phase6Scene extends Phaser.Scene {
         yoyo: true,
         repeat: 2,
         ease: "Sine.inOut",
-        onComplete: () =>
-          card.background.setStrokeStyle(2, 0x40566d, 0.78),
+        onComplete: () => this.updateFileCard(card, false, false),
       });
     });
   }
 
   shakeCapacityBar() {
-    this.phase6CapacityBack.setX(640);
-    this.phase6CapacityFill.setX(643);
+    if (!this.phase6CapacityBack || !this.phase6CapacityFill) {
+      return;
+    }
+
+    const backX = this.phase6CapacityBack.x;
+    const fillX = this.phase6CapacityFill.x;
+
     this.tweens.add({
       targets: [this.phase6CapacityBack, this.phase6CapacityFill],
       x: "+=7",
@@ -1484,8 +1244,8 @@ export default class Phase6Scene extends Phaser.Scene {
       repeat: 3,
       ease: "Sine.inOut",
       onComplete: () => {
-        this.phase6CapacityBack.setX(640);
-        this.phase6CapacityFill.setX(643);
+        this.phase6CapacityBack.setX(backX);
+        this.phase6CapacityFill.setX(fillX);
       },
     });
   }
@@ -1527,6 +1287,10 @@ export default class Phase6Scene extends Phaser.Scene {
   }
 
   pulseFlashDrive(color) {
+    if (!this.phase6FlashContainer || !this.phase6FlashGlow) {
+      return;
+    }
+
     this.phase6FlashGlow
       .setFillStyle(color, 0.09)
       .setStrokeStyle(3, color, 0.88)
@@ -1551,23 +1315,9 @@ export default class Phase6Scene extends Phaser.Scene {
     this.clearStage();
     this.phase6Stage = this.add.container(0, 0);
 
-    const glow = this.add
-      .circle(480, 125, 78, 0x70b7ff, 0.07)
-      .setStrokeStyle(2, 0x70b7ff, 0.3);
-    this.addToStage(glow);
-    this.tweens.add({
-      targets: glow,
-      scale: 1.18,
-      alpha: 0.025,
-      duration: 950,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.inOut",
-    });
-
     this.addToStage(
       this.add
-        .text(480, 54, "FASE CONCLUÍDA!", {
+        .text(480, 68, "FASE CONCLUIDA!", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "20px",
           color: "#8ef28b",
@@ -1575,12 +1325,12 @@ export default class Phase6Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    this.createCompletionFlashDrive(480, 126);
+    this.createCompletionFlashDrive(480, 145);
 
     this.addToStage(
-      createRoundedPanel(this, 480, 301, 770, 220, {
+      createRoundedPanel(this, 480, 304, 720, 190, {
         stroke: 0x70b7ff,
-        strokeAlpha: 0.42,
+        strokeAlpha: 0.38,
         radius: 18,
       }),
     );
@@ -1589,8 +1339,8 @@ export default class Phase6Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          280,
-          "Você aprendeu que o pen drive usa memória flash para transportar dados com praticidade. Também viu que é importante ejetar com segurança para evitar corrupção de arquivos.",
+          282,
+          "Voce transferiu arquivos com memoria flash e ejetou o pen drive com seguranca.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "18px",
@@ -1598,7 +1348,7 @@ export default class Phase6Scene extends Phaser.Scene {
             color: "#dce8f5",
             align: "center",
             lineSpacing: 7,
-            wordWrap: { width: 710 },
+            wordWrap: { width: 620 },
           },
         )
         .setOrigin(0.5),
@@ -1606,7 +1356,7 @@ export default class Phase6Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 370, `PONTUAÇÃO FINAL: ${finalScore}`, {
+        .text(480, 364, `PONTUACAO FINAL: ${finalScore}`, {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "12px",
           color: "#ffd166",
@@ -1618,9 +1368,9 @@ export default class Phase6Scene extends Phaser.Scene {
       304,
       462,
       310,
-      "VOLTAR À LINHA DO TEMPO",
+      "VOLTAR A LINHA DO TEMPO",
       () => this.returnToTimeline(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "9px" },
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
     );
     this.createButton(
       656,
@@ -1639,22 +1389,6 @@ export default class Phase6Scene extends Phaser.Scene {
       duration: 350,
       ease: "Back.out",
     });
-  }
-
-  getFileColor(type) {
-    const colors = {
-      PPT: 0xff8f70,
-      DOC: 0x70b7ff,
-      ZIP: 0xc49cff,
-      MP4: 0xff7b68,
-      MP3: 0x8ef28b,
-      EXE: 0xff8f70,
-      PDF: 0xffd166,
-      XLS: 0x8ef28b,
-      PNG: 0x62e7f2,
-    };
-
-    return colors[type] ?? 0x8da2bd;
   }
 
   toCssColor(color) {
@@ -1694,25 +1428,22 @@ export default class Phase6Scene extends Phaser.Scene {
     this.addToStage(drive);
   }
 
-  disableChallengeControls() {
-    [
-      this.phase6ClearButton,
-      this.phase6CopyButton,
-      this.phase6TransferButton,
-      this.phase6EjectButton,
-    ].forEach((button) => button.background.disableInteractive());
-
-    this.phase6FileCards.forEach(({ background }) =>
-      background.disableInteractive(),
-    );
-  }
-
   restartPhase() {
     this.startChallenge();
   }
 
   returnToTimeline() {
     this.scene.start("TimelineScene");
+  }
+
+  createBodyButton(x, y, width, label, callback, options = {}) {
+    return createStandardButton(this, x, y, width, label, callback, {
+      border: options.border ?? 0x62e7f2,
+      hover: options.hover ?? 0x1c5264,
+      fontSize: options.fontSize ?? "10px",
+      height: options.height ?? 56,
+      addToStage: (button) => this.addToBody(button),
+    });
   }
 
   createButton(x, y, width, label, callback, options = {}) {
@@ -1740,6 +1471,10 @@ export default class Phase6Scene extends Phaser.Scene {
     text.on("pointerover", () => text.setColor("#62e7f2"));
     text.on("pointerout", () => text.setColor("#8da2bd"));
     text.on("pointerdown", () => this.returnToTimeline());
+  }
+
+  addToBody(gameObjects) {
+    this.phase6Body.add(gameObjects);
   }
 
   addToStage(gameObjects) {
