@@ -9,41 +9,130 @@ import {
   drawRetroBackground,
 } from "../utils/visualHelpers.js";
 
+const PHASE4_CAPACITY_MB = 1.44;
 const PHASE4_STARTING_SCORE = 100;
-const PHASE4_READ_PENALTY = 10;
-const PHASE4_SCRATCH_PENALTY = 5;
-const PHASE4_MIN_SECTORS = 6;
-const PHASE4_MAX_SECTORS = 8;
+const PHASE4_SAVE_PENALTY = 10;
+const PHASE4_CAPACITY_PENALTY = 5;
+const PHASE4_MIN_FILES = 6;
+const PHASE4_MAX_FILES = 8;
 
-const PHASE4_SECTOR_SLOTS = [
-  { id: "north-west", x: -73, y: -87 },
-  { id: "north", x: 3, y: -111 },
-  { id: "north-east", x: 82, y: -76 },
-  { id: "east", x: 111, y: -4 },
-  { id: "south-east", x: 78, y: 77 },
-  { id: "south", x: 4, y: 109 },
-  { id: "south-west", x: -82, y: 76 },
-  { id: "west", x: -111, y: -5 },
-  { id: "inner-north-west", x: -47, y: -40 },
-  { id: "inner-north-east", x: 49, y: -39 },
-  { id: "inner-south-east", x: 48, y: 42 },
-  { id: "inner-south-west", x: -48, y: 42 },
+const PHASE4_FILE_TEMPLATES = [
+  {
+    id: "text",
+    name: "texto.txt",
+    type: "TXT",
+    minSize: 0.07,
+    maxSize: 0.15,
+    canBeImportant: true,
+  },
+  {
+    id: "summary",
+    name: "resumo.pdf",
+    type: "PDF",
+    minSize: 0.18,
+    maxSize: 0.32,
+    canBeImportant: true,
+  },
+  {
+    id: "document",
+    name: "trabalho.doc",
+    type: "DOC",
+    minSize: 0.16,
+    maxSize: 0.3,
+    canBeImportant: true,
+  },
+  {
+    id: "sheet",
+    name: "planilha.xls",
+    type: "XLS",
+    minSize: 0.22,
+    maxSize: 0.38,
+    canBeImportant: true,
+  },
+  {
+    id: "photo",
+    name: "foto.bmp",
+    type: "BMP",
+    minSize: 0.46,
+    maxSize: 0.7,
+    canBeImportant: true,
+  },
+  {
+    id: "drawing",
+    name: "desenho.bmp",
+    type: "BMP",
+    minSize: 0.42,
+    maxSize: 0.64,
+    canBeImportant: true,
+  },
+  {
+    id: "music",
+    name: "musica.wav",
+    type: "WAV",
+    minSize: 0.95,
+    maxSize: 1.35,
+    canBeImportant: false,
+  },
+  {
+    id: "video",
+    name: "video.avi",
+    type: "AVI",
+    minSize: 1.65,
+    maxSize: 2.8,
+    canBeImportant: false,
+  },
+  {
+    id: "game",
+    name: "jogo.exe",
+    type: "EXE",
+    minSize: 1.5,
+    maxSize: 2.5,
+    canBeImportant: false,
+  },
+  {
+    id: "backup",
+    name: "backup.zip",
+    type: "ZIP",
+    minSize: 0.72,
+    maxSize: 1.18,
+    canBeImportant: false,
+  },
+  {
+    id: "code",
+    name: "codigo.c",
+    type: "C",
+    minSize: 0.05,
+    maxSize: 0.14,
+    canBeImportant: true,
+  },
+  {
+    id: "notes",
+    name: "notas.txt",
+    type: "TXT",
+    minSize: 0.04,
+    maxSize: 0.11,
+    canBeImportant: true,
+  },
+  {
+    id: "image",
+    name: "imagem.gif",
+    type: "GIF",
+    minSize: 0.28,
+    maxSize: 0.46,
+    canBeImportant: true,
+  },
+  {
+    id: "slides",
+    name: "apresentacao.ppt",
+    type: "PPT",
+    minSize: 0.38,
+    maxSize: 0.62,
+    canBeImportant: true,
+  },
 ];
 
-const PHASE4_SCRATCH_SLOTS = [
-  { id: "scratch-a", x: -52, y: -70, length: 64, angle: 0.42 },
-  { id: "scratch-b", x: 62, y: -18, length: 76, angle: -0.68 },
-  { id: "scratch-c", x: -34, y: 75, length: 70, angle: 0.2 },
-  { id: "scratch-d", x: 35, y: 72, length: 58, angle: -0.34 },
-  { id: "scratch-e", x: -82, y: 9, length: 60, angle: 0.78 },
-  { id: "scratch-f", x: 34, y: -84, length: 56, angle: 0.12 },
-];
-
-const PHASE4_DISC = {
-  x: 352,
-  y: 274,
-  radius: 142,
-};
+const PHASE4_OVERSIZED_IDS = new Set(["video", "game"]);
+const PHASE4_BULKY_IDS = new Set(["music", "backup"]);
 
 export default class Phase4Scene extends Phaser.Scene {
   constructor() {
@@ -65,7 +154,7 @@ export default class Phase4Scene extends Phaser.Scene {
 
   drawBackground() {
     drawRetroBackground(this, {
-      accent: 0xc49cff,
+      accent: 0x8ef28b,
       bottomLeft: 0x17283a,
       bottomRight: 0x0a1522,
       gridAlpha: 0.04,
@@ -79,37 +168,37 @@ export default class Phase4Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 48, "FASE 4: CD / DVD", {
+        .text(480, 48, "FASE 4: DISQUETE", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "20px",
-          color: "#c49cff",
+          color: "#8ef28b",
         })
         .setOrigin(0.5),
     );
 
     this.addToStage(
       createRoundedPanel(this, 480, 278, 780, 374, {
-        stroke: 0xc49cff,
+        stroke: 0x8ef28b,
         strokeAlpha: 0.46,
         radius: 20,
       }),
     );
 
-    this.createIntroDisc(480, 151);
+    this.createIntroFloppyDisk(480, 155);
 
     this.addToStage(
       this.add
         .text(
           480,
           298,
-          "CDs e DVDs armazenam dados em discos ópticos. Um laser lê\npequenas marcas na superfície para acessar arquivos,\nmúsicas, vídeos e programas.",
+          "Os disquetes permitiam transportar arquivos entre computadores,\nmas tinham capacidade muito pequena.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "19px",
+            fontSize: "20px",
             fontStyle: "700",
             color: "#dce8f5",
             align: "center",
-            lineSpacing: 6,
+            lineSpacing: 7,
             wordWrap: { width: 710 },
           },
         )
@@ -120,8 +209,8 @@ export default class Phase4Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          376,
-          "Limpe a sujeira do disco e evite os danos\npara concluir a leitura.",
+          372,
+          "Escolha os arquivos importantes e salve no disquete\nsem ultrapassar o limite de espaço.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "18px",
@@ -129,6 +218,7 @@ export default class Phase4Scene extends Phaser.Scene {
             color: "#ffd166",
             align: "center",
             lineSpacing: 5,
+            wordWrap: { width: 700 },
           },
         )
         .setOrigin(0.5),
@@ -146,14 +236,12 @@ export default class Phase4Scene extends Phaser.Scene {
   }
 
   startChallenge() {
+    this.phase4SelectedIds = new Set();
+    this.phase4UsedCapacity = 0;
     this.phase4Score = PHASE4_STARTING_SCORE;
-    this.phase4CleanedDirt = new Set();
-    this.phase4DiscoveredScratches = new Set();
-    this.phase4IsReading = false;
     this.phase4IsComplete = false;
-    this.phase4SectorObjects = new Map();
-    this.phase4DirtObjects = [];
-    this.phase4ScratchObjects = [];
+    this.phase4FileCards = new Map();
+    this.phase4MissionCards = new Map();
     this.setupRandomChallenge();
 
     this.clearStage();
@@ -161,10 +249,10 @@ export default class Phase4Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 29, "FASE 4: LEITURA ÓPTICA", {
+        .text(480, 29, "FASE 4: DISQUETE", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "14px",
-          color: "#c49cff",
+          fontSize: "15px",
+          color: "#8ef28b",
         })
         .setOrigin(0.5),
     );
@@ -179,17 +267,13 @@ export default class Phase4Scene extends Phaser.Scene {
     this.addToStage(this.phase4ScoreText);
 
     this.createObjectivePanel();
-    this.createDiscArea();
-    this.createDisc();
-    this.createSectors();
-    this.createScratches();
-    this.createDirt();
-    this.createLaser();
-    this.createSidePanel();
+    this.createFileList();
+    this.createStoragePanel();
     this.createControls();
     this.createFeedbackArea();
     this.createBackLink();
-    this.updateReadiness();
+    this.updateCapacityBar();
+    this.updateMissionState();
 
     this.phase4Stage.setAlpha(0);
     this.tweens.add({
@@ -204,77 +288,62 @@ export default class Phase4Scene extends Phaser.Scene {
     const previousSignature = this.phase4ChallengeSignature;
 
     for (let attempt = 0; attempt < 150; attempt += 1) {
-      const sectorCount = Phaser.Math.Between(
-        PHASE4_MIN_SECTORS,
-        PHASE4_MAX_SECTORS,
+      const fileCount = Phaser.Math.Between(
+        PHASE4_MIN_FILES,
+        PHASE4_MAX_FILES,
       );
       const importantCount = Phaser.Math.Between(3, 4);
-      const selectedSlots = this.shuffleItems(PHASE4_SECTOR_SLOTS).slice(
-        0,
-        sectorCount,
+      const generatedFiles = PHASE4_FILE_TEMPLATES.map((template) =>
+        this.createFileFromTemplate(template),
       );
-      const importantIds = new Set(
-        this.shuffleItems(selectedSlots)
-          .slice(0, importantCount)
-          .map((slot) => slot.id),
-      );
-      const sectors = selectedSlots.map((slot, index) => ({
-        ...slot,
-        number: index + 1,
-        important: importantIds.has(slot.id),
-      }));
-
-      const importantSectors = sectors.filter((sector) => sector.important);
-      const optionalSectors = sectors.filter((sector) => !sector.important);
-      const importantDirtCount = Phaser.Math.Between(
-        Math.max(2, importantCount - 1),
+      const importantFiles = this.pickImportantFiles(
+        generatedFiles,
         importantCount,
       );
-      const optionalDirtCount = Phaser.Math.Between(
-        1,
-        Math.min(2, optionalSectors.length),
-      );
-      const dirtySectors = [
-        ...this.shuffleItems(importantSectors).slice(0, importantDirtCount),
-        ...this.shuffleItems(optionalSectors).slice(0, optionalDirtCount),
-      ];
-      const dirtSpots = dirtySectors.map((sector, index) => ({
-        id: `dirt-${sector.id}`,
-        sectorId: sector.id,
-        x: sector.x + Phaser.Math.Between(-3, 3),
-        y: sector.y + Phaser.Math.Between(-3, 3),
-        size: Phaser.Math.Between(13, 17),
-        important: sector.important,
-        index,
-      }));
 
-      const scratchCount = Phaser.Math.Between(1, 2);
-      const scratches = this.pickScratchSlots(dirtSpots, scratchCount);
-      const scanDirection = Phaser.Math.Between(0, 1) === 0 ? "left" : "right";
-      const signature = [
-        sectors
-          .map(
-            (sector) =>
-              `${sector.id}:${sector.important ? "I" : "N"}`,
-          )
-          .sort()
-          .join("|"),
-        dirtSpots
-          .map((dirt) => `${dirt.sectorId}:${dirt.size}`)
-          .sort()
-          .join("|"),
-        scratches
-          .map((scratch) => scratch.id)
-          .sort()
-          .join("|"),
-        scanDirection,
-      ].join("::");
+      if (!importantFiles) {
+        continue;
+      }
+
+      const usedIds = new Set(importantFiles.map((file) => file.id));
+      const oversizedFile = this.shuffleItems(
+        generatedFiles.filter((file) => PHASE4_OVERSIZED_IDS.has(file.id)),
+      )[0];
+      const bulkyFile = this.shuffleItems(
+        generatedFiles.filter((file) => PHASE4_BULKY_IDS.has(file.id)),
+      )[0];
+
+      const selectedFiles = [...importantFiles, oversizedFile, bulkyFile];
+      usedIds.add(oversizedFile.id);
+      usedIds.add(bulkyFile.id);
+
+      const remainingFiles = this.shuffleItems(
+        generatedFiles.filter((file) => !usedIds.has(file.id)),
+      );
+
+      while (selectedFiles.length < fileCount && remainingFiles.length > 0) {
+        const nextFile = remainingFiles.pop();
+        selectedFiles.push(nextFile);
+        usedIds.add(nextFile.id);
+      }
+
+      const importantIds = new Set(importantFiles.map((file) => file.id));
+      const challengeFiles = this.shuffleItems(selectedFiles).map((file) => ({
+        ...file,
+        essential: importantIds.has(file.id),
+      }));
+      const signature = challengeFiles
+        .map(
+          (file) =>
+            `${file.id}:${file.size.toFixed(2)}:${file.essential ? "I" : "N"}`,
+        )
+        .join("|");
 
       if (signature !== previousSignature) {
-        this.phase4Sectors = sectors;
-        this.phase4DirtSpots = dirtSpots;
-        this.phase4Scratches = scratches;
-        this.phase4ScanDirection = scanDirection;
+        this.phase4Files = challengeFiles;
+        this.phase4ImportantFiles = challengeFiles.filter(
+          (file) => file.essential,
+        );
         this.phase4ChallengeSignature = signature;
         return;
       }
@@ -283,56 +352,99 @@ export default class Phase4Scene extends Phaser.Scene {
     this.createFallbackChallenge();
   }
 
-  pickScratchSlots(dirtSpots, scratchCount) {
-    const preferredSlots = this.shuffleItems(PHASE4_SCRATCH_SLOTS).filter(
-      (scratch) =>
-        dirtSpots.every(
-          (dirt) =>
-            Phaser.Math.Distance.Between(
-              scratch.x,
-              scratch.y,
-              dirt.x,
-              dirt.y,
-            ) > 38,
-        ),
-    );
-    const chosenSlots = preferredSlots.slice(0, scratchCount);
+  createFileFromTemplate(template) {
+    const minSize = Math.round(template.minSize * 100);
+    const maxSize = Math.round(template.maxSize * 100);
 
-    if (chosenSlots.length < scratchCount) {
-      const chosenIds = new Set(chosenSlots.map((scratch) => scratch.id));
-      const remainingSlots = this.shuffleItems(PHASE4_SCRATCH_SLOTS).filter(
-        (scratch) => !chosenIds.has(scratch.id),
+    return {
+      id: template.id,
+      name: template.name,
+      type: template.type,
+      size: Phaser.Math.Between(minSize, maxSize) / 100,
+      canBeImportant: template.canBeImportant,
+    };
+  }
+
+  pickImportantFiles(files, importantCount) {
+    const eligibleFiles = files.filter((file) => file.canBeImportant);
+    const minimumUsefulCapacity = importantCount === 4 ? 0.78 : 0.58;
+    const maximumUsefulCapacity = 1.3;
+
+    for (let attempt = 0; attempt < 80; attempt += 1) {
+      const candidates = this.shuffleItems(eligibleFiles).slice(
+        0,
+        importantCount,
       );
-      chosenSlots.push(
-        ...remainingSlots.slice(0, scratchCount - chosenSlots.length),
+      const totalSize = candidates.reduce(
+        (total, file) => total + file.size,
+        0,
       );
+
+      if (
+        totalSize >= minimumUsefulCapacity &&
+        totalSize <= maximumUsefulCapacity
+      ) {
+        return candidates;
+      }
     }
 
-    return chosenSlots;
+    return null;
   }
 
   createFallbackChallenge() {
-    const sectors = PHASE4_SECTOR_SLOTS.slice(0, 7).map((slot, index) => ({
-      ...slot,
-      number: index + 1,
-      important: [0, 2, 4, 6].includes(index),
-    }));
+    const fallbackFiles = [
+      { id: "notes", name: "notas.txt", type: "TXT", size: 0.1, essential: true },
+      {
+        id: "document",
+        name: "trabalho.doc",
+        type: "DOC",
+        size: 0.28,
+        essential: true,
+      },
+      {
+        id: "summary",
+        name: "resumo.pdf",
+        type: "PDF",
+        size: 0.31,
+        essential: true,
+      },
+      {
+        id: "image",
+        name: "imagem.gif",
+        type: "GIF",
+        size: 0.39,
+        essential: true,
+      },
+      {
+        id: "music",
+        name: "musica.wav",
+        type: "WAV",
+        size: 1.16,
+        essential: false,
+      },
+      {
+        id: "video",
+        name: "video.avi",
+        type: "AVI",
+        size: 2.25,
+        essential: false,
+      },
+      {
+        id: "backup",
+        name: "backup.zip",
+        type: "ZIP",
+        size: 0.88,
+        essential: false,
+      },
+    ];
 
-    this.phase4Sectors = sectors;
-    this.phase4DirtSpots = [sectors[0], sectors[2], sectors[4], sectors[1]].map(
-      (sector, index) => ({
-        id: `dirt-${sector.id}`,
-        sectorId: sector.id,
-        x: sector.x,
-        y: sector.y,
-        size: 15,
-        important: sector.important,
-        index,
-      }),
+    this.phase4Files = this.shuffleItems(fallbackFiles);
+    this.phase4ImportantFiles = this.phase4Files.filter(
+      (file) => file.essential,
     );
-    this.phase4Scratches = [PHASE4_SCRATCH_SLOTS[2]];
-    this.phase4ScanDirection = "left";
-    this.phase4ChallengeSignature = "fallback-phase-4";
+    this.phase4ChallengeSignature = this.phase4Files
+      .map((file) => `${file.id}:${file.size.toFixed(2)}`)
+      .join("|");
   }
 
   shuffleItems(items) {
@@ -365,7 +477,7 @@ export default class Phase4Scene extends Phaser.Scene {
         .text(
           480,
           75,
-          "Objetivo: limpe os setores importantes para o laser ler os dados.",
+          "Objetivo: salve os arquivos importantes sem ultrapassar 1,44 MB.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "16px",
@@ -378,309 +490,9 @@ export default class Phase4Scene extends Phaser.Scene {
     );
   }
 
-  createDiscArea() {
+  createFileList() {
     this.addToStage(
-      createRoundedPanel(this, 350, 280, 610, 330, {
-        fill: 0x0b1729,
-        stroke: 0xc49cff,
-        strokeAlpha: 0.32,
-        radius: 16,
-      }),
-    );
-
-    this.addToStage(
-      this.add
-        .text(350, 129, "SUPERFÍCIE DO DISCO", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
-          color: "#c49cff",
-        })
-        .setOrigin(0.5),
-    );
-  }
-
-  createDisc() {
-    this.phase4DiscContainer = this.add.container(
-      PHASE4_DISC.x,
-      PHASE4_DISC.y,
-    );
-    this.addToStage(this.phase4DiscContainer);
-
-    const disc = this.add.graphics();
-    disc.fillStyle(0x030713, 0.42);
-    disc.fillCircle(7, 9, PHASE4_DISC.radius + 2);
-    disc.fillStyle(0xbccbd8, 1);
-    disc.fillCircle(0, 0, PHASE4_DISC.radius);
-
-    const rings = [
-      { radius: 130, color: 0x62e7f2, alpha: 0.34, width: 5 },
-      { radius: 111, color: 0xc49cff, alpha: 0.32, width: 8 },
-      { radius: 88, color: 0xffd166, alpha: 0.22, width: 7 },
-      { radius: 65, color: 0x8ef28b, alpha: 0.2, width: 6 },
-    ];
-    rings.forEach(({ radius, color, alpha, width }) => {
-      disc.lineStyle(width, color, alpha);
-      disc.strokeCircle(0, 0, radius);
-    });
-
-    disc.lineStyle(3, 0xf1f7ff, 0.48);
-    disc.strokeCircle(0, 0, PHASE4_DISC.radius);
-    disc.fillStyle(0x0b1627, 1);
-    disc.fillCircle(0, 0, 29);
-    disc.lineStyle(6, 0x8799a8, 0.85);
-    disc.strokeCircle(0, 0, 29);
-
-    disc.fillStyle(0xffffff, 0.22);
-    disc.beginPath();
-    disc.moveTo(-108, -89);
-    disc.lineTo(-20, -20);
-    disc.lineTo(-53, 18);
-    disc.lineTo(-128, -48);
-    disc.closePath();
-    disc.fillPath();
-
-    disc.fillStyle(0x62e7f2, 0.12);
-    disc.beginPath();
-    disc.moveTo(92, -96);
-    disc.lineTo(30, -26);
-    disc.lineTo(64, 12);
-    disc.lineTo(127, -51);
-    disc.closePath();
-    disc.fillPath();
-    this.phase4DiscContainer.add(disc);
-
-    this.phase4DiscGlow = this.add
-      .circle(
-        PHASE4_DISC.x,
-        PHASE4_DISC.y,
-        PHASE4_DISC.radius + 10,
-        0xc49cff,
-        0,
-      )
-      .setStrokeStyle(4, 0xc49cff, 0);
-    this.addToStage(this.phase4DiscGlow);
-  }
-
-  createSectors() {
-    this.phase4Sectors.forEach((sector) => {
-      const sectorContainer = this.add.container(sector.x, sector.y);
-      const halo = this.add.circle(
-        0,
-        0,
-        sector.important ? 22 : 16,
-        sector.important ? 0xffd166 : 0x62e7f2,
-        sector.important ? 0.14 : 0.08,
-      );
-      const marker = this.add
-        .circle(
-          0,
-          0,
-          sector.important ? 13 : 10,
-          sector.important ? 0x493d1c : 0x24495d,
-          0.96,
-        )
-        .setStrokeStyle(
-          sector.important ? 3 : 2,
-          sector.important ? 0xffd166 : 0x62e7f2,
-          sector.important ? 0.95 : 0.7,
-        );
-      const dataPoint = this.add.circle(
-        0,
-        0,
-        4,
-        sector.important ? 0xffd166 : 0x62e7f2,
-        1,
-      );
-      const number = this.add
-        .text(0, sector.important ? -31 : -25, String(sector.number), {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "5px",
-          color: sector.important ? "#493d1c" : "#24495d",
-          backgroundColor: sector.important ? "#ffd166" : "#8ed8e8",
-          padding: { left: 3, right: 3, top: 2, bottom: 2 },
-        })
-        .setOrigin(0.5);
-
-      sectorContainer.add([halo, marker, dataPoint, number]);
-      this.phase4DiscContainer.add(sectorContainer);
-      this.phase4SectorObjects.set(sector.id, {
-        container: sectorContainer,
-        halo,
-        marker,
-        dataPoint,
-        number,
-        sector,
-      });
-    });
-  }
-
-  createScratches() {
-    this.phase4Scratches.forEach((scratch, index) => {
-      const scratchContainer = this.add.container(scratch.x, scratch.y);
-      const shadow = this.add
-        .rectangle(2, 2, scratch.length, 4, 0x26333d, 0.72)
-        .setRotation(scratch.angle);
-      const scratchLine = this.add
-        .rectangle(0, 0, scratch.length, 3, 0xe7edf2, 0.94)
-        .setRotation(scratch.angle);
-      const highlight = this.add
-        .rectangle(
-          -scratch.length * 0.08,
-          -2,
-          scratch.length * 0.7,
-          1,
-          0xffffff,
-          0.92,
-        )
-        .setRotation(scratch.angle);
-      const endMark = this.add
-        .rectangle(
-          scratch.length * 0.28,
-          1,
-          scratch.length * 0.22,
-          2,
-          0x8394a2,
-          0.8,
-        )
-        .setRotation(scratch.angle + 0.08);
-      const hitArea = this.add
-        .rectangle(0, 0, scratch.length + 28, 26, 0xffffff, 0.001)
-        .setRotation(scratch.angle)
-        .setInteractive({ useHandCursor: true });
-
-      scratchContainer.add([
-        shadow,
-        scratchLine,
-        highlight,
-        endMark,
-        hitArea,
-      ]);
-      this.phase4DiscContainer.add(scratchContainer);
-      hitArea.on("pointerdown", () => this.handleScratchClick(index));
-
-      this.phase4ScratchObjects.push({
-        container: scratchContainer,
-        scratchLine,
-        highlight,
-        hitArea,
-      });
-    });
-  }
-
-  createDirt() {
-    this.phase4DirtSpots.forEach((spot, index) => {
-      const dirtContainer = this.add.container(spot.x, spot.y);
-      const stainEdge = this.add
-        .circle(0, 0, spot.size + 5, 0x3c2919, 0.25)
-        .setStrokeStyle(2, 0x382618, 0.7);
-      const stain = this.add.circle(0, 0, spot.size, 0x76512d, 0.94);
-      const blobOne = this.add.circle(
-        -spot.size * 0.55,
-        3,
-        spot.size * 0.55,
-        0x654321,
-        0.88,
-      );
-      const blobTwo = this.add.circle(
-        spot.size * 0.52,
-        -3,
-        spot.size * 0.46,
-        0x8a6034,
-        0.9,
-      );
-      const speckOne = this.add.circle(-6, -6, 3, 0x332116, 0.9);
-      const speckTwo = this.add.circle(7, 5, 2.5, 0x422a17, 0.9);
-      const hitArea = this.add
-        .circle(0, 0, spot.size + 16, 0xffffff, 0.001)
-        .setInteractive({ useHandCursor: true });
-
-      dirtContainer.add([
-        stainEdge,
-        stain,
-        blobOne,
-        blobTwo,
-        speckOne,
-        speckTwo,
-        hitArea,
-      ]);
-      this.phase4DiscContainer.add(dirtContainer);
-
-      hitArea.on("pointerover", () => {
-        if (!this.phase4IsComplete && !this.phase4IsReading) {
-          this.tweens.add({
-            targets: dirtContainer,
-            scale: 1.13,
-            duration: 100,
-            ease: "Sine.out",
-          });
-        }
-      });
-      hitArea.on("pointerout", () => {
-        this.tweens.add({
-          targets: dirtContainer,
-          scale: 1,
-          duration: 100,
-          ease: "Sine.out",
-        });
-      });
-      hitArea.on("pointerdown", () => this.cleanDirt(index));
-
-      this.phase4DirtObjects.push({
-        container: dirtContainer,
-        hitArea,
-        spot,
-      });
-    });
-  }
-
-  createLaser() {
-    const reader = this.add.graphics();
-    reader.fillStyle(0x15283b, 1);
-    reader.fillRoundedRect(150, 407, 404, 40, 10);
-    reader.lineStyle(2, 0x62e7f2, 0.55);
-    reader.strokeRoundedRect(150, 407, 404, 40, 10);
-    reader.fillStyle(0x60758a, 1);
-    reader.fillRoundedRect(306, 398, 92, 22, 5);
-    reader.fillStyle(0x09121f, 1);
-    reader.fillCircle(352, 409, 8);
-    reader.fillStyle(0x62e7f2, 1);
-    reader.fillCircle(352, 409, 3);
-    this.addToStage(reader);
-
-    this.phase4LaserGlow = this.add
-      .rectangle(352, 405, 22, 262, 0x62e7f2, 0)
-      .setOrigin(0.5, 1)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    this.phase4LaserBeam = this.add
-      .rectangle(352, 405, 5, 262, 0x62e7f2, 0)
-      .setOrigin(0.5, 1)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    this.phase4LaserHead = this.add.circle(352, 409, 6, 0x62e7f2, 0.95);
-    this.addToStage([
-      this.phase4LaserGlow,
-      this.phase4LaserBeam,
-      this.phase4LaserHead,
-    ]);
-
-    this.addToStage(
-      this.add
-        .text(
-          352,
-          435,
-          `UNIDADE LASER  ${this.phase4ScanDirection === "left" ? ">" : "<"}`,
-          {
-            fontFamily: '"Press Start 2P", monospace',
-            fontSize: "7px",
-            color: "#62e7f2",
-          },
-        )
-        .setOrigin(0.5),
-    );
-  }
-
-  createSidePanel() {
-    this.addToStage(
-      createRoundedPanel(this, 785, 280, 270, 330, {
+      createRoundedPanel(this, 280, 278, 500, 330, {
         fill: 0x0b1729,
         stroke: 0x62e7f2,
         strokeAlpha: 0.32,
@@ -690,60 +502,135 @@ export default class Phase4Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(785, 130, "STATUS DA LEITURA", {
+        .text(280, 130, "ARQUIVOS DISPONÍVEIS", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
+          fontSize: "9px",
           color: "#62e7f2",
         })
         .setOrigin(0.5),
     );
 
-    this.phase4ReadinessText = this.add
-      .text(785, 162, "", {
+    const columnPositions = [168, 392];
+    const rowPositions = [170, 229, 288, 347];
+
+    this.phase4Files.forEach((file, index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      this.createFileCard(
+        file,
+        columnPositions[column],
+        rowPositions[row],
+      );
+    });
+  }
+
+  createFileCard(file, x, y) {
+    const cardContainer = this.add.container(x, y);
+    const background = this.add
+      .rectangle(0, 0, 210, 50, 0x16263a, 1)
+      .setStrokeStyle(2, 0x40566d, 0.82)
+      .setInteractive({ useHandCursor: true });
+    const icon = this.add
+      .rectangle(-83, 0, 31, 32, this.getFileColor(file.type), 0.94)
+      .setStrokeStyle(1, 0xf1f7ff, 0.34);
+    const typeText = this.add
+      .text(-83, 0, file.type, {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "8px",
-        color: "#ffd166",
-        align: "center",
-        lineSpacing: 4,
+        fontSize: file.type.length > 3 ? "4px" : "5px",
+        color: "#07101f",
       })
       .setOrigin(0.5);
-    this.addToStage(this.phase4ReadinessText);
+    const nameText = this.add
+      .text(-61, -9, file.name, {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "13px",
+        fontStyle: "900",
+        color: "#f1f7ff",
+      })
+      .setOrigin(0, 0.5);
+    const sizeText = this.add
+      .text(-61, 11, `${this.formatCapacity(file.size)} MB`, {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "6px",
+        color: "#9fb1c6",
+      })
+      .setOrigin(0, 0.5);
+    const selectedMark = this.add
+      .text(91, 12, "OK", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "6px",
+        color: "#8ef28b",
+      })
+      .setOrigin(1, 0.5)
+      .setVisible(false);
+    const importantTag = this.add
+      .text(96, -13, "IMPORTANTE", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "5px",
+        color: "#ffd166",
+        backgroundColor: "#493d1c",
+        padding: { left: 4, right: 4, top: 3, bottom: 3 },
+      })
+      .setOrigin(1, 0.5)
+      .setVisible(file.essential);
 
+    cardContainer.add([
+      background,
+      icon,
+      typeText,
+      nameText,
+      sizeText,
+      selectedMark,
+      importantTag,
+    ]);
+    this.addToStage(cardContainer);
+
+    background.on("pointerover", () => {
+      if (!this.phase4IsComplete) {
+        background.setFillStyle(
+          this.phase4SelectedIds.has(file.id) ? 0x285b68 : 0x203b50,
+        );
+      }
+    });
+    background.on("pointerout", () => {
+      background.setFillStyle(
+        this.phase4SelectedIds.has(file.id) ? 0x245064 : 0x16263a,
+      );
+    });
+    background.on("pointerdown", () => this.toggleFileSelection(file.id));
+
+    this.phase4FileCards.set(file.id, {
+      container: cardContainer,
+      background,
+      selectedMark,
+    });
+  }
+
+  createStoragePanel() {
     this.addToStage(
-      this.add
-        .text(785, 206, "LEGENDA", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "7px",
-          color: "#c49cff",
-        })
-        .setOrigin(0.5),
-    );
-
-    this.createLegendRow(785, 232, "important", "Anel amarelo: setor importante");
-    this.createLegendRow(785, 261, "dirt", "Mancha marrom: clique para limpar");
-    this.createLegendRow(785, 290, "scratch", "Risco claro: dano permanente");
-
-    this.addToStage(
-      createRoundedPanel(this, 785, 342, 230, 62, {
-        fill: 0x101f35,
-        stroke: 0xffd166,
-        strokeAlpha: 0.3,
-        radius: 12,
-        shadow: false,
+      createRoundedPanel(this, 755, 278, 310, 330, {
+        fill: 0x0b1729,
+        stroke: 0x8ef28b,
+        strokeAlpha: 0.34,
+        radius: 16,
       }),
     );
+
+    this.createMissionList();
+    this.createFloppyDisk();
+    this.createCapacityBar();
 
     this.addToStage(
       this.add
         .text(
-          785,
-          342,
-          "Dica: o laser precisa de uma\nsuperfície limpa para ler os dados.",
+          755,
+          425,
+          "Dica: disquetes tinham pouco espaço.\nEscolha apenas o essencial.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "12px",
             fontStyle: "800",
-            color: "#dce8f5",
+            color: "#c7d7e8",
             align: "center",
             lineSpacing: 2,
           },
@@ -752,49 +639,160 @@ export default class Phase4Scene extends Phaser.Scene {
     );
   }
 
-  createLegendRow(x, y, type, label) {
-    if (type === "important") {
-      this.addToStage(
-        this.add
-          .circle(x - 103, y, 8, 0x493d1c, 1)
-          .setStrokeStyle(3, 0xffd166, 1),
+  createMissionList() {
+    this.addToStage(
+      this.add
+        .text(755, 130, "MISSÃO: ARQUIVOS IMPORTANTES", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "7px",
+          color: "#ffd166",
+        })
+        .setOrigin(0.5),
+    );
+
+    const columns = [688, 822];
+    const rows = [157, 184];
+
+    this.phase4ImportantFiles.forEach((file, index) => {
+      const column = index % 2;
+      const row = Math.floor(index / 2);
+      const chipContainer = this.add.container(
+        columns[column],
+        rows[row],
       );
-    } else if (type === "dirt") {
-      this.addToStage(
-        this.add
-          .circle(x - 103, y, 9, 0x76512d, 1)
-          .setStrokeStyle(2, 0x382618, 0.8),
-      );
-    } else {
-      this.addToStage(
-        this.add.rectangle(x - 103, y, 19, 3, 0xe7edf2, 1).setRotation(-0.4),
-      );
-    }
+      const chipBackground = this.add
+        .rectangle(0, 0, 124, 22, 0x2f2919, 1)
+        .setStrokeStyle(1, 0xffd166, 0.55);
+      const chipText = this.add
+        .text(0, 0, file.name, {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "11px",
+          fontStyle: "900",
+          color: "#ffe39a",
+        })
+        .setOrigin(0.5);
+
+      chipContainer.add([chipBackground, chipText]);
+      this.addToStage(chipContainer);
+      this.phase4MissionCards.set(file.id, {
+        container: chipContainer,
+        background: chipBackground,
+        text: chipText,
+      });
+    });
+  }
+
+  createFloppyDisk() {
+    const x = 677;
+    const y = 207;
+    const width = 156;
+    const height = 122;
+    const graphics = this.add.graphics();
+
+    graphics.fillStyle(0x000000, 0.28);
+    graphics.fillRoundedRect(x + 7, y + 8, width, height, 11);
+    graphics.fillStyle(0x274c46, 1);
+    graphics.fillRoundedRect(x, y, width, height, 11);
+    graphics.lineStyle(3, 0x8ef28b, 0.58);
+    graphics.strokeRoundedRect(x, y, width, height, 11);
+
+    graphics.fillStyle(0xb8c2c7, 1);
+    graphics.fillRoundedRect(x + 34, y, 88, 45, 4);
+    graphics.fillStyle(0x26343e, 1);
+    graphics.fillRect(x + 91, y + 7, 19, 31);
+    graphics.fillStyle(0x8da2bd, 0.45);
+    graphics.fillRect(x + 43, y + 8, 35, 29);
+
+    graphics.fillStyle(0xd8cfaa, 1);
+    graphics.fillRoundedRect(x + 27, y + 65, 102, 46, 6);
+    graphics.lineStyle(2, 0x786f50, 0.55);
+    graphics.strokeRoundedRect(x + 27, y + 65, 102, 46, 6);
+    graphics.lineBetween(x + 41, y + 83, x + 114, y + 83);
+    graphics.lineBetween(x + 41, y + 96, x + 103, y + 96);
+    this.addToStage(graphics);
+
+    this.phase4DiskGlow = this.add
+      .rectangle(
+        x + width / 2,
+        y + height / 2,
+        width + 12,
+        height + 12,
+        14,
+      )
+      .setStrokeStyle(4, 0x8ef28b, 0)
+      .setFillStyle(0x8ef28b, 0);
+    this.addToStage(this.phase4DiskGlow);
+
+    this.phase4SelectionText = this.add
+      .text(x + width / 2, y + 88, "0 arquivos", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "6px",
+        color: "#514a34",
+        align: "center",
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase4SelectionText);
+  }
+
+  createCapacityBar() {
+    this.addToStage(
+      this.add
+        .text(755, 347, "CAPACIDADE DO DISQUETE: 1,44 MB", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "7px",
+          color: "#ffd166",
+        })
+        .setOrigin(0.5),
+    );
 
     this.addToStage(
       this.add
-        .text(x - 85, y, label, {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "11px",
-          fontStyle: "800",
-          color: "#c7d7e8",
-        })
-        .setOrigin(0, 0.5),
+        .rectangle(755, 373, 250, 24, 0x07101f, 1)
+        .setStrokeStyle(2, 0x60758a, 0.9),
     );
+
+    this.phase4CapacityFill = this.add
+      .rectangle(632, 373, 246, 18, 0x8ef28b, 1)
+      .setOrigin(0, 0.5)
+      .setScale(0, 1);
+    this.addToStage(this.phase4CapacityFill);
+
+    this.phase4CapacityText = this.add
+      .text(755, 399, "Usado: 0,00 MB / 1,44 MB", {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "14px",
+        fontStyle: "900",
+        color: "#dce8f5",
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase4CapacityText);
   }
 
   createControls() {
-    this.phase4ReadButton = this.createButton(
-      785,
+    this.phase4ClearButton = this.createButton(
+      169,
       416,
-      230,
-      "LER DISCO",
-      () => this.readDisc(),
+      205,
+      "LIMPAR SELEÇÃO",
+      () => this.clearSelection(),
+      {
+        border: 0xffd166,
+        hover: 0x564624,
+        fontSize: "8px",
+        height: 48,
+      },
+    );
+    this.phase4SaveButton = this.createButton(
+      391,
+      416,
+      225,
+      "SALVAR NO DISQUETE",
+      () => this.validateSelection(),
       {
         border: 0x8ef28b,
         hover: 0x246a69,
-        fontSize: "10px",
-        height: 50,
+        fontSize: "8px",
+        height: 48,
       },
     );
   }
@@ -815,7 +813,7 @@ export default class Phase4Scene extends Phaser.Scene {
       .text(
         480,
         503,
-        "Clique nas manchas sobre os setores importantes.",
+        `Selecione os ${this.phase4ImportantFiles.length} arquivos importantes.`,
         {
           fontFamily: '"Nunito", sans-serif',
           fontSize: "14px",
@@ -829,240 +827,147 @@ export default class Phase4Scene extends Phaser.Scene {
     this.addToStage(this.phase4MessageText);
   }
 
-  cleanDirt(index) {
-    if (
-      this.phase4IsReading ||
-      this.phase4IsComplete ||
-      this.phase4CleanedDirt.has(index)
-    ) {
+  toggleFileSelection(fileId) {
+    if (this.phase4IsComplete) {
       return;
     }
 
-    this.phase4CleanedDirt.add(index);
-    const dirt = this.phase4DirtObjects[index];
-    dirt.hitArea.disableInteractive();
+    const file = this.getFileById(fileId);
+    const card = this.phase4FileCards.get(fileId);
+    const wasOverCapacity = this.isOverCapacity();
 
-    this.tweens.add({
-      targets: dirt.container,
-      scale: 1.65,
-      alpha: 0,
-      angle: 35,
-      duration: 280,
-      ease: "Sine.out",
-      onComplete: () => dirt.container.setVisible(false),
-    });
-
-    this.updateSectorVisual(dirt.spot.sectorId);
-    this.updateReadiness();
-    this.showFeedback(
-      dirt.spot.important
-        ? "Sujeira removida do setor importante."
-        : "Sujeira removida. Este setor era opcional.",
-      "success",
-    );
-    this.createCleaningSparkles(
-      PHASE4_DISC.x + dirt.spot.x,
-      PHASE4_DISC.y + dirt.spot.y,
-    );
-  }
-
-  updateSectorVisual(sectorId) {
-    const sectorObject = this.phase4SectorObjects.get(sectorId);
-
-    if (!sectorObject?.sector.important) {
-      return;
-    }
-
-    const isClean = this.isImportantSectorClean(sectorId);
-    sectorObject.halo.setFillStyle(isClean ? 0x8ef28b : 0xffd166, 0.16);
-    sectorObject.marker
-      .setFillStyle(isClean ? 0x173d35 : 0x493d1c, 0.96)
-      .setStrokeStyle(3, isClean ? 0x8ef28b : 0xffd166, 0.95);
-    sectorObject.dataPoint.setFillStyle(isClean ? 0x8ef28b : 0xffd166, 1);
-    sectorObject.number
-      .setBackgroundColor(isClean ? "#8ef28b" : "#ffd166")
-      .setColor(isClean ? "#173d35" : "#493d1c");
-  }
-
-  updateReadiness() {
-    const importantSectors = this.phase4Sectors.filter(
-      (sector) => sector.important,
-    );
-    const cleanCount = importantSectors.filter((sector) =>
-      this.isImportantSectorClean(sector.id),
-    ).length;
-    const allClean = cleanCount === importantSectors.length;
-
-    importantSectors.forEach((sector) => this.updateSectorVisual(sector.id));
-    this.phase4ReadinessText
-      .setText(
-        `SETORES IMPORTANTES\nLIMPOS: ${cleanCount} / ${importantSectors.length}`,
-      )
-      .setColor(allClean ? "#8ef28b" : "#ffd166");
-  }
-
-  isImportantSectorClean(sectorId) {
-    const dirtIndex = this.phase4DirtSpots.findIndex(
-      (dirt) => dirt.sectorId === sectorId,
-    );
-
-    return dirtIndex === -1 || this.phase4CleanedDirt.has(dirtIndex);
-  }
-
-  createCleaningSparkles(x, y) {
-    const offsets = [
-      [-12, -10],
-      [13, -7],
-      [-8, 13],
-      [11, 11],
-    ];
-
-    offsets.forEach(([offsetX, offsetY], index) => {
-      const sparkle = this.add
-        .rectangle(
-          x + offsetX,
-          y + offsetY,
-          5,
-          5,
-          index % 2 === 0 ? 0x62e7f2 : 0x8ef28b,
-          0.9,
-        )
-        .setRotation(Math.PI / 4);
-      this.addToStage(sparkle);
-      this.tweens.add({
-        targets: sparkle,
-        scale: 1.9,
-        alpha: 0,
-        duration: 350,
-        delay: index * 35,
-      });
-    });
-  }
-
-  handleScratchClick(index) {
-    if (this.phase4IsReading || this.phase4IsComplete) {
-      return;
-    }
-
-    const wasAlreadyDiscovered =
-      this.phase4DiscoveredScratches.has(index);
-
-    if (wasAlreadyDiscovered) {
-      this.updateScore(-PHASE4_SCRATCH_PENALTY);
+    if (this.phase4SelectedIds.has(fileId)) {
+      this.phase4SelectedIds.delete(fileId);
+      this.showFeedback("Arquivo removido da seleção.", "neutral");
     } else {
-      this.phase4DiscoveredScratches.add(index);
+      this.phase4SelectedIds.add(fileId);
+      this.showFeedback("Arquivo selecionado.", "success");
     }
 
-    const scratch = this.phase4ScratchObjects[index];
-    scratch.scratchLine.setFillStyle(0xff7b68, 1);
-    scratch.highlight.setFillStyle(0xffc0b3, 1);
+    const isSelected = this.phase4SelectedIds.has(fileId);
+    this.updateFileCard(card, isSelected);
+    this.updateCapacityBar();
+    this.updateMissionState();
+
+    const isOverCapacity = this.isOverCapacity();
+    if (!wasOverCapacity && isOverCapacity) {
+      this.updateScore(-PHASE4_CAPACITY_PENALTY);
+      this.showFeedback(
+        file.size > PHASE4_CAPACITY_MB
+          ? "Esse arquivo é grande demais para caber no disquete."
+          : "Espaço insuficiente no disquete.",
+        "error",
+      );
+      this.animateCapacityWarning();
+    }
+  }
+
+  updateFileCard(card, isSelected) {
+    card.selectedMark.setVisible(isSelected);
+    card.background
+      .setFillStyle(isSelected ? 0x245064 : 0x16263a)
+      .setStrokeStyle(
+        isSelected ? 3 : 2,
+        isSelected ? 0x8ef28b : 0x40566d,
+        isSelected ? 1 : 0.82,
+      );
 
     this.tweens.add({
-      targets: scratch.container,
-      scale: 1.18,
-      duration: 90,
-      yoyo: true,
-      repeat: 2,
-      ease: "Sine.inOut",
-      onComplete: () => {
-        scratch.scratchLine.setFillStyle(0xe7edf2, 0.94);
-        scratch.highlight.setFillStyle(0xffffff, 0.92);
-      },
+      targets: card.container,
+      scale: isSelected ? 1.035 : 1,
+      duration: 140,
+      ease: "Back.out",
+    });
+  }
+
+  updateCapacityBar() {
+    this.phase4UsedCapacity = this.phase4Files.reduce((total, file) => {
+      return this.phase4SelectedIds.has(file.id) ? total + file.size : total;
+    }, 0);
+
+    const ratio = this.phase4UsedCapacity / PHASE4_CAPACITY_MB;
+    const displayedRatio = Phaser.Math.Clamp(ratio, 0, 1);
+    const overCapacity = this.isOverCapacity();
+    const nearCapacity = ratio >= 0.82;
+    const color = overCapacity
+      ? 0xff7b68
+      : nearCapacity
+        ? 0xffd166
+        : 0x8ef28b;
+
+    this.tweens.killTweensOf(this.phase4CapacityFill);
+    this.phase4CapacityFill.setFillStyle(color);
+    this.tweens.add({
+      targets: this.phase4CapacityFill,
+      scaleX: displayedRatio,
+      duration: 210,
+      ease: "Sine.out",
     });
 
-    this.showFeedback(
-      wasAlreadyDiscovered
-        ? "O risco é permanente. Evite insistir: -5 pontos."
-        : "Arranhões podem prejudicar a leitura e não desaparecem.",
-      wasAlreadyDiscovered ? "error" : "warning",
+    this.phase4CapacityText
+      .setText(
+        `Usado: ${this.formatCapacity(this.phase4UsedCapacity)} MB / 1,44 MB`,
+      )
+      .setColor(
+        overCapacity ? "#ff9b78" : nearCapacity ? "#ffd166" : "#dce8f5",
+      );
+
+    const selectedCount = this.phase4SelectedIds.size;
+    this.phase4SelectionText.setText(
+      `${selectedCount} ${selectedCount === 1 ? "arquivo" : "arquivos"}`,
     );
   }
 
-  readDisc() {
-    if (this.phase4IsReading || this.phase4IsComplete) {
+  updateMissionState() {
+    this.phase4ImportantFiles.forEach((file) => {
+      const missionCard = this.phase4MissionCards.get(file.id);
+      const selected = this.phase4SelectedIds.has(file.id);
+
+      missionCard.background
+        .setFillStyle(selected ? 0x173d35 : 0x2f2919, 1)
+        .setStrokeStyle(
+          selected ? 2 : 1,
+          selected ? 0x8ef28b : 0xffd166,
+          selected ? 0.9 : 0.55,
+        );
+      missionCard.text.setColor(selected ? "#8ef28b" : "#ffe39a");
+    });
+  }
+
+  validateSelection() {
+    if (this.phase4IsComplete) {
       return;
     }
 
-    this.phase4IsReading = true;
-    const remainingImportantDirt = this.phase4DirtSpots.filter(
-      (dirt, index) =>
-        dirt.important && !this.phase4CleanedDirt.has(index),
-    );
-    const isSuccessful = remainingImportantDirt.length === 0;
+    if (this.isOverCapacity()) {
+      this.showFailure("Espaço insuficiente! Remova algum arquivo.");
+      this.animateCapacityWarning();
+      return;
+    }
 
-    this.animateLaserScan(isSuccessful, () => {
-      this.phase4IsReading = false;
-
-      if (isSuccessful) {
-        this.showSuccess();
-      } else {
-        this.showFailure(remainingImportantDirt);
-      }
-    });
-  }
-
-  animateLaserScan(isSuccessful, onComplete) {
-    const color = isSuccessful ? 0x8ef28b : 0xff7b68;
-    const startX = this.phase4ScanDirection === "left" ? 220 : 484;
-    const endX = this.phase4ScanDirection === "left" ? 484 : 220;
-
-    this.phase4LaserBeam
-      .setFillStyle(color, 0.96)
-      .setAlpha(0.96)
-      .setX(startX);
-    this.phase4LaserGlow
-      .setFillStyle(color, 0.22)
-      .setAlpha(0.72)
-      .setX(startX);
-    this.phase4LaserHead.setFillStyle(color, 1).setX(startX);
-
-    this.tweens.add({
-      targets: [
-        this.phase4LaserBeam,
-        this.phase4LaserGlow,
-        this.phase4LaserHead,
-      ],
-      x: endX,
-      duration: 900,
-      ease: "Sine.inOut",
-      onComplete: () => {
-        this.phase4LaserBeam.setAlpha(0);
-        this.phase4LaserGlow.setAlpha(0);
-        this.phase4LaserHead.setFillStyle(0x62e7f2, 0.95).setX(352);
-        onComplete();
-      },
-    });
-  }
-
-  showFailure(remainingImportantDirt) {
-    this.updateScore(-PHASE4_READ_PENALTY);
-    this.showFeedback(
-      "O laser encontrou sujeira. Limpe os setores importantes.",
-      "error",
+    const missingImportantFiles = this.phase4ImportantFiles.filter(
+      (file) => !this.phase4SelectedIds.has(file.id),
     );
 
-    remainingImportantDirt.forEach((dirt) => {
-      const dirtObject = this.phase4DirtObjects[dirt.index];
-      this.tweens.add({
-        targets: dirtObject.container,
-        scale: 1.22,
-        duration: 90,
-        yoyo: true,
-        repeat: 2,
-        ease: "Sine.inOut",
-      });
-    });
+    if (missingImportantFiles.length > 0) {
+      this.showFailure("Alguns arquivos importantes ficaram de fora.");
+      this.animateMissingFiles(missingImportantFiles);
+      return;
+    }
 
-    this.tweens.add({
-      targets: this.phase4DiscContainer,
-      x: PHASE4_DISC.x + 5,
-      duration: 55,
-      yoyo: true,
-      repeat: 2,
-      ease: "Sine.inOut",
-      onComplete: () => this.phase4DiscContainer.setX(PHASE4_DISC.x),
-    });
-    this.cameras.main.shake(110, 0.0015);
+    this.showSuccess();
+  }
+
+  clearSelection() {
+    if (this.phase4IsComplete || this.phase4SelectedIds.size === 0) {
+      return;
+    }
+
+    this.phase4SelectedIds.clear();
+    this.phase4FileCards.forEach((card) => this.updateFileCard(card, false));
+    this.updateCapacityBar();
+    this.updateMissionState();
+    this.showFeedback("Seleção limpa. Escolha novamente.", "warning");
   }
 
   updateScore(change) {
@@ -1095,44 +1000,85 @@ export default class Phase4Scene extends Phaser.Scene {
       .setColor(colors[type] ?? colors.neutral);
   }
 
+  showFailure(message) {
+    this.updateScore(-PHASE4_SAVE_PENALTY);
+    this.showFeedback(message, "error");
+    this.cameras.main.shake(120, 0.002);
+  }
+
+  animateCapacityWarning() {
+    this.phase4CapacityFill.setX(632);
+    this.phase4CapacityText.setX(755);
+    this.tweens.add({
+      targets: [this.phase4CapacityFill, this.phase4CapacityText],
+      x: "+=5",
+      duration: 55,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.inOut",
+      onComplete: () => {
+        this.phase4CapacityFill.setX(632);
+        this.phase4CapacityText.setX(755);
+      },
+    });
+  }
+
+  animateMissingFiles(missingFiles) {
+    missingFiles.forEach((file) => {
+      const card = this.phase4FileCards.get(file.id);
+      const missionCard = this.phase4MissionCards.get(file.id);
+
+      card.background.setStrokeStyle(3, 0xff7b68, 1);
+      missionCard.background.setStrokeStyle(2, 0xff7b68, 1);
+      missionCard.text.setColor("#ff9b78");
+
+      this.tweens.add({
+        targets: [card.container, missionCard.container],
+        x: "+=5",
+        duration: 55,
+        yoyo: true,
+        repeat: 2,
+        ease: "Sine.inOut",
+        onComplete: () => {
+          card.background.setStrokeStyle(2, 0x40566d, 0.82);
+          this.updateMissionState();
+        },
+      });
+    });
+  }
+
   showSuccess() {
     this.phase4IsComplete = true;
     this.disableChallengeControls();
-    this.showFeedback("Leitura concluída com sucesso!", "success");
+    this.showFeedback("Arquivos salvos com sucesso no disquete!", "success");
 
-    this.phase4DiscGlow
-      .setFillStyle(0x8ef28b, 0.1)
+    this.phase4DiskGlow
       .setStrokeStyle(4, 0x8ef28b, 0.9)
+      .setFillStyle(0x8ef28b, 0.1)
       .setBlendMode(Phaser.BlendModes.ADD);
 
     this.tweens.add({
-      targets: this.phase4DiscGlow,
-      scale: 1.12,
-      alpha: 0.3,
+      targets: this.phase4DiskGlow,
+      scale: 1.14,
+      alpha: 0.28,
       duration: 340,
       yoyo: true,
       repeat: 2,
       ease: "Sine.inOut",
     });
-    this.tweens.add({
-      targets: this.phase4DiscContainer,
-      angle: 360,
-      duration: 1300,
-      ease: "Cubic.out",
-    });
 
     this.createSuccessSparkles();
-    this.time.delayedCall(1500, () => this.showConclusion());
+    this.time.delayedCall(1400, () => this.showConclusion());
   }
 
   createSuccessSparkles() {
     const positions = [
-      [232, 170],
-      [310, 120],
-      [410, 124],
-      [487, 180],
-      [470, 348],
-      [244, 350],
+      [684, 225],
+      [716, 196],
+      [794, 196],
+      [830, 230],
+      [823, 308],
+      [690, 319],
     ];
 
     positions.forEach(([x, y], index) => {
@@ -1162,8 +1108,8 @@ export default class Phase4Scene extends Phaser.Scene {
     this.phase4Stage = this.add.container(0, 0);
 
     const glow = this.add
-      .circle(480, 125, 78, 0xc49cff, 0.07)
-      .setStrokeStyle(2, 0xc49cff, 0.3);
+      .circle(480, 125, 76, 0x8ef28b, 0.07)
+      .setStrokeStyle(2, 0x8ef28b, 0.3);
     this.addToStage(glow);
     this.tweens.add({
       targets: glow,
@@ -1185,11 +1131,11 @@ export default class Phase4Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    this.createCompletionDisc(480, 126);
+    this.createCompletionFloppyDisk(480, 126);
 
     this.addToStage(
       createRoundedPanel(this, 480, 301, 770, 220, {
-        stroke: 0xc49cff,
+        stroke: 0x8ef28b,
         strokeAlpha: 0.42,
         radius: 18,
       }),
@@ -1200,7 +1146,7 @@ export default class Phase4Scene extends Phaser.Scene {
         .text(
           480,
           280,
-          "Você aprendeu que CDs e DVDs armazenam dados de forma óptica,\nusando laser. Eles oferecem mais capacidade que disquetes,\nmas podem falhar quando estão sujos ou arranhados.",
+          "Você aprendeu que o disquete tornou os arquivos mais portáteis,\nmas tinha pouca capacidade. Por isso, era preciso escolher\nbem o que salvar.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "19px",
@@ -1251,50 +1197,76 @@ export default class Phase4Scene extends Phaser.Scene {
     });
   }
 
-  createIntroDisc(x, y) {
-    const disc = this.add.graphics();
-    disc.fillStyle(0xb6c8d6, 1);
-    disc.fillCircle(x, y, 82);
-    disc.lineStyle(8, 0x62e7f2, 0.3);
-    disc.strokeCircle(x, y, 67);
-    disc.lineStyle(7, 0xc49cff, 0.3);
-    disc.strokeCircle(x, y, 48);
-    disc.fillStyle(0x0b1627, 1);
-    disc.fillCircle(x, y, 18);
-    disc.lineStyle(4, 0x8799a8, 0.8);
-    disc.strokeCircle(x, y, 18);
-    disc.fillStyle(0xffffff, 0.2);
-    disc.beginPath();
-    disc.moveTo(x - 59, y - 48);
-    disc.lineTo(x - 12, y - 10);
-    disc.lineTo(x - 32, y + 13);
-    disc.lineTo(x - 72, y - 27);
-    disc.closePath();
-    disc.fillPath();
-    this.addToStage(disc);
+  createIntroFloppyDisk(x, y) {
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x274c46, 1);
+    graphics.fillRoundedRect(x - 92, y - 72, 184, 144, 12);
+    graphics.lineStyle(3, 0x8ef28b, 0.58);
+    graphics.strokeRoundedRect(x - 92, y - 72, 184, 144, 12);
+    graphics.fillStyle(0xb8c2c7, 1);
+    graphics.fillRoundedRect(x - 42, y - 72, 84, 55, 4);
+    graphics.fillStyle(0x26343e, 1);
+    graphics.fillRect(x + 15, y - 64, 17, 39);
+    graphics.fillStyle(0xd8cfaa, 1);
+    graphics.fillRoundedRect(x - 58, y + 8, 116, 52, 6);
+    graphics.lineStyle(2, 0x786f50, 0.55);
+    graphics.lineBetween(x - 42, y + 29, x + 42, y + 29);
+    graphics.lineBetween(x - 42, y + 43, x + 27, y + 43);
+    this.addToStage(graphics);
   }
 
-  createCompletionDisc(x, y) {
-    const disc = this.add.graphics();
-    disc.fillStyle(0xb6c8d6, 1);
-    disc.fillCircle(x, y, 53);
-    disc.lineStyle(6, 0xc49cff, 0.35);
-    disc.strokeCircle(x, y, 39);
-    disc.fillStyle(0x0b1627, 1);
-    disc.fillCircle(x, y, 13);
-    disc.lineStyle(3, 0x8ef28b, 0.9);
-    disc.strokeCircle(x, y, 53);
-    disc.fillStyle(0x8ef28b, 1);
-    disc.fillCircle(x, y, 5);
-    this.addToStage(disc);
+  createCompletionFloppyDisk(x, y) {
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x274c46, 1);
+    graphics.fillRoundedRect(x - 64, y - 43, 128, 86, 8);
+    graphics.lineStyle(2, 0x8ef28b, 0.65);
+    graphics.strokeRoundedRect(x - 64, y - 43, 128, 86, 8);
+    graphics.fillStyle(0xb8c2c7, 1);
+    graphics.fillRoundedRect(x - 27, y - 43, 54, 32, 3);
+    graphics.fillStyle(0xd8cfaa, 1);
+    graphics.fillRoundedRect(x - 39, y + 5, 78, 30, 4);
+    graphics.fillStyle(0x8ef28b, 1);
+    graphics.fillCircle(x, y + 20, 6);
+    this.addToStage(graphics);
+  }
+
+  getFileColor(type) {
+    const colors = {
+      TXT: 0x62e7f2,
+      PDF: 0xff8f70,
+      DOC: 0x70b7ff,
+      XLS: 0x8ef28b,
+      BMP: 0xffd166,
+      WAV: 0xc49cff,
+      AVI: 0xff8f70,
+      EXE: 0xff7b68,
+      ZIP: 0xc49cff,
+      C: 0x62e7f2,
+      GIF: 0xffd166,
+      PPT: 0xff8f70,
+    };
+
+    return colors[type] ?? 0x8da2bd;
+  }
+
+  getFileById(fileId) {
+    return this.phase4Files.find((file) => file.id === fileId);
+  }
+
+  isOverCapacity() {
+    return this.phase4UsedCapacity > PHASE4_CAPACITY_MB + 0.0001;
+  }
+
+  formatCapacity(value) {
+    return value.toFixed(2).replace(".", ",");
   }
 
   disableChallengeControls() {
-    this.phase4ReadButton.background.disableInteractive();
-    this.phase4DirtObjects.forEach(({ hitArea }) => hitArea.disableInteractive());
-    this.phase4ScratchObjects.forEach(({ hitArea }) =>
-      hitArea.disableInteractive(),
+    this.phase4FileCards.forEach(({ background }) =>
+      background.disableInteractive(),
     );
+    this.phase4ClearButton.background.disableInteractive();
+    this.phase4SaveButton.background.disableInteractive();
   }
 
   restartPhase() {

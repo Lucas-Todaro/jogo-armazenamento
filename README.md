@@ -88,6 +88,8 @@ O jogo possui progressão por fases:
 
 O progresso é salvo localmente no navegador com `localStorage`, pela chave `jornadaDoBitProgress`. Isso significa que o progresso não é global: outro navegador, outro dispositivo ou uma limpeza dos dados locais pode fazer o jogo começar do zero.
 
+Como a ordem cronológica das fases foi reorganizada, o progresso salvo também possui uma versão interna. Progresso antigo, gravado antes da nova ordem, é reiniciado automaticamente para evitar desbloqueios ou pontuações associadas à fase errada.
+
 ## Pontuação
 
 Cada fase possui pontuação própria. Em geral, a fase começa com 100 pontos e o jogador perde pontos ao cometer erros, fazer tentativas incorretas ou executar ações inadequadas.
@@ -96,43 +98,43 @@ As pontuações são salvas por fase e podem ser somadas para formar a pontuaç�
 
 ## Fases do jogo
 
-### Fase 1 — Cartões Perfurados
+### Fase 1 — Cartões Perfurados (1890)
 
 A primeira fase apresenta os cartões perfurados, uma das formas antigas de representar informações em máquinas. A presença ou ausência de furos é relacionada à lógica binária, mostrando como dados podem ser codificados fisicamente.
 
 **Mecânica:** o jogador monta uma sequência binária no cartão, clicando nas posições para alternar entre furo e ausência de furo.
 
-### Fase 2 — Fita Magnética
+### Fase 2 — Fita Magnética (1951)
 
 A segunda fase ensina o conceito de acesso sequencial. Em fitas magnéticas, para encontrar um arquivo, era necessário avançar ou rebobinar até chegar à posição desejada.
 
 **Mecânica:** o jogador controla uma cabeça de leitura, avançando e rebobinando na fita até encontrar o arquivo procurado.
 
-### Fase 3 — Disquete
+### Fase 3 — HD / Disco Rígido (1956)
 
-A terceira fase mostra o disquete como uma mídia portátil, mas com capacidade bastante limitada. O foco educativo está em escolher o que realmente cabe no espaço disponível.
-
-**Mecânica:** o jogador escolhe arquivos importantes e tenta salvá-los sem ultrapassar o limite de armazenamento do disquete.
-
-### Fase 4 — CD/DVD
-
-A quarta fase aborda CDs e DVDs como mídias ópticas lidas por laser. Elas oferecem mais capacidade que disquetes, mas podem ter a leitura prejudicada por sujeira e arranhões.
-
-**Mecânica:** o jogador limpa sujeiras do disco para permitir que o laser leia os dados corretamente.
-
-### Fase 5 — HD / Disco Rígido
-
-A quinta fase apresenta o HD como um dispositivo com pratos magnéticos girando e cabeça de leitura mecânica. Ele oferece grande capacidade, mas possui partes sensíveis a impacto e vibração.
+A terceira fase apresenta o HD como um dispositivo com pratos magnéticos girando e cabeça de leitura mecânica. Ele aparece antes do disquete na linha do tempo, representando a chegada de uma tecnologia com grande capacidade para computadores.
 
 **Mecânica:** o jogador move a cabeça de leitura entre setores para recuperar arquivos, tomando cuidado com vibrações.
 
-### Fase 6 — Pen drive / Memória Flash
+### Fase 4 — Disquete (1971)
+
+A quarta fase mostra o disquete como uma mídia portátil, mas com capacidade bastante limitada. O foco educativo está em escolher o que realmente cabe no espaço disponível.
+
+**Mecânica:** o jogador escolhe arquivos importantes e tenta salvá-los sem ultrapassar o limite de armazenamento do disquete.
+
+### Fase 5 — CD/DVD (Anos 80/90)
+
+A quinta fase aborda CDs e DVDs como mídias ópticas lidas por laser. Elas oferecem mais capacidade que disquetes, mas podem ter a leitura prejudicada por sujeira e arranhões.
+
+**Mecânica:** o jogador limpa sujeiras do disco para permitir que o laser leia os dados corretamente.
+
+### Fase 6 — Pen drive / Memória Flash (2000)
 
 A sexta fase mostra o pen drive como um dispositivo baseado em memória flash, capaz de transportar arquivos sem partes móveis.
 
 **Mecânica:** o jogador passa por etapas guiadas: selecionar arquivos importantes, copiar para o pen drive, transferir para outro computador e ejetar com segurança.
 
-### Fase 7 — SSD e Nuvem
+### Fase 7 — SSD e Nuvem (Atualidade)
 
 A sétima fase compara duas formas modernas de armazenamento. O SSD usa memória flash para acesso rápido e local, enquanto a nuvem armazena dados em servidores acessados pela internet.
 

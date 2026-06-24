@@ -1,8 +1,11 @@
 const JORNADA_DO_BIT_STORAGE_KEY = "jornadaDoBitProgress";
+const JORNADA_DO_BIT_PROGRESS_VERSION_KEY = "jornadaDoBitProgressVersion";
+const JORNADA_DO_BIT_PROGRESS_VERSION = 2;
 const JORNADA_DO_BIT_TOTAL_PHASES = 7;
 
 function createDefaultProgress() {
   return {
+    version: JORNADA_DO_BIT_PROGRESS_VERSION,
     completedPhases: [],
     unlockedPhase: 1,
     phaseScores: {},
@@ -13,6 +16,10 @@ function normalizeProgress(progress) {
   const defaultProgress = createDefaultProgress();
 
   if (!progress || typeof progress !== "object") {
+    return defaultProgress;
+  }
+
+  if (progress.version !== JORNADA_DO_BIT_PROGRESS_VERSION) {
     return defaultProgress;
   }
 
@@ -61,6 +68,7 @@ function normalizeProgress(progress) {
   }
 
   return {
+    version: JORNADA_DO_BIT_PROGRESS_VERSION,
     completedPhases: sequentialCompletedPhases,
     unlockedPhase,
     phaseScores,
@@ -75,6 +83,19 @@ export function getProgress() {
   let savedProgress = null;
 
   try {
+    const savedVersion = Number(
+      localStorage.getItem(JORNADA_DO_BIT_PROGRESS_VERSION_KEY),
+    );
+
+    if (savedVersion !== JORNADA_DO_BIT_PROGRESS_VERSION) {
+      localStorage.removeItem(JORNADA_DO_BIT_STORAGE_KEY);
+      localStorage.setItem(
+        JORNADA_DO_BIT_PROGRESS_VERSION_KEY,
+        String(JORNADA_DO_BIT_PROGRESS_VERSION),
+      );
+      return createDefaultProgress();
+    }
+
     savedProgress = localStorage.getItem(JORNADA_DO_BIT_STORAGE_KEY);
   } catch (error) {
     return createDefaultProgress();
@@ -97,10 +118,13 @@ export function saveProgress(progress) {
   }
 
   try {
+    const normalizedProgress = normalizeProgress(progress);
+
     localStorage.setItem(
-      JORNADA_DO_BIT_STORAGE_KEY,
-      JSON.stringify(normalizeProgress(progress)),
+      JORNADA_DO_BIT_PROGRESS_VERSION_KEY,
+      String(JORNADA_DO_BIT_PROGRESS_VERSION),
     );
+    localStorage.setItem(JORNADA_DO_BIT_STORAGE_KEY, JSON.stringify(normalizedProgress));
   } catch (error) {
     // If storage is blocked, the game still runs; progress just won't persist.
   }
@@ -201,6 +225,7 @@ export function resetProgress() {
   if (typeof localStorage !== "undefined") {
     try {
       localStorage.removeItem(JORNADA_DO_BIT_STORAGE_KEY);
+      localStorage.removeItem(JORNADA_DO_BIT_PROGRESS_VERSION_KEY);
     } catch (error) {
       // Ignore storage failures so the timeline remains usable.
     }

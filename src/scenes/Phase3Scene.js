@@ -3,136 +3,35 @@ import {
   isPhaseUnlocked,
   savePhaseScore,
 } from "../utils/progressManager.js";
-import {
-  createRoundedPanel,
-  createStandardButton,
-  drawRetroBackground,
-} from "../utils/visualHelpers.js";
+import { createStandardButton, drawRetroBackground } from "../utils/visualHelpers.js";
 
-const PHASE3_CAPACITY_MB = 1.44;
 const PHASE3_STARTING_SCORE = 100;
-const PHASE3_SAVE_PENALTY = 10;
-const PHASE3_CAPACITY_PENALTY = 5;
-const PHASE3_MIN_FILES = 6;
-const PHASE3_MAX_FILES = 8;
-
-const PHASE3_FILE_TEMPLATES = [
-  {
-    id: "text",
-    name: "texto.txt",
-    type: "TXT",
-    minSize: 0.07,
-    maxSize: 0.15,
-    canBeImportant: true,
-  },
-  {
-    id: "summary",
-    name: "resumo.pdf",
-    type: "PDF",
-    minSize: 0.18,
-    maxSize: 0.32,
-    canBeImportant: true,
-  },
-  {
-    id: "document",
-    name: "trabalho.doc",
-    type: "DOC",
-    minSize: 0.16,
-    maxSize: 0.3,
-    canBeImportant: true,
-  },
-  {
-    id: "sheet",
-    name: "planilha.xls",
-    type: "XLS",
-    minSize: 0.22,
-    maxSize: 0.38,
-    canBeImportant: true,
-  },
-  {
-    id: "photo",
-    name: "foto.bmp",
-    type: "BMP",
-    minSize: 0.46,
-    maxSize: 0.7,
-    canBeImportant: true,
-  },
-  {
-    id: "drawing",
-    name: "desenho.bmp",
-    type: "BMP",
-    minSize: 0.42,
-    maxSize: 0.64,
-    canBeImportant: true,
-  },
-  {
-    id: "music",
-    name: "musica.wav",
-    type: "WAV",
-    minSize: 0.95,
-    maxSize: 1.35,
-    canBeImportant: false,
-  },
-  {
-    id: "video",
-    name: "video.avi",
-    type: "AVI",
-    minSize: 1.65,
-    maxSize: 2.8,
-    canBeImportant: false,
-  },
-  {
-    id: "game",
-    name: "jogo.exe",
-    type: "EXE",
-    minSize: 1.5,
-    maxSize: 2.5,
-    canBeImportant: false,
-  },
-  {
-    id: "backup",
-    name: "backup.zip",
-    type: "ZIP",
-    minSize: 0.72,
-    maxSize: 1.18,
-    canBeImportant: false,
-  },
-  {
-    id: "code",
-    name: "codigo.c",
-    type: "C",
-    minSize: 0.05,
-    maxSize: 0.14,
-    canBeImportant: true,
-  },
-  {
-    id: "notes",
-    name: "notas.txt",
-    type: "TXT",
-    minSize: 0.04,
-    maxSize: 0.11,
-    canBeImportant: true,
-  },
-  {
-    id: "image",
-    name: "imagem.gif",
-    type: "GIF",
-    minSize: 0.28,
-    maxSize: 0.46,
-    canBeImportant: true,
-  },
-  {
-    id: "slides",
-    name: "apresentacao.ppt",
-    type: "PPT",
-    minSize: 0.38,
-    maxSize: 0.62,
-    canBeImportant: true,
-  },
+const PHASE3_TARGET_COUNT = 3;
+const PHASE3_DRIVE_POSITION = { x: 342, y: 278 };
+const PHASE3_PLATTER_CENTER = { x: -10, y: -8 };
+const PHASE3_HEAD_PIVOT = { x: 148, y: 124 };
+const PHASE3_FILE_POOL = [
+  "sistema.sys",
+  "fotos.zip",
+  "jogo.iso",
+  "trabalho.doc",
+  "musica.mp3",
+  "backup.bak",
+  "dados.db",
+  "projeto.zip",
+  "video.mp4",
+  "config.ini",
 ];
-
-const PHASE3_OVERSIZED_IDS = new Set(["video", "game"]);
-const PHASE3_BULKY_IDS = new Set(["music", "backup"]);
+const PHASE3_SECTOR_SLOTS = [
+  { angle: -126, radius: 96, color: 0x8ef28b },
+  { angle: -82, radius: 118, color: 0x62e7f2 },
+  { angle: -38, radius: 92, color: 0xffd166 },
+  { angle: 8, radius: 116, color: 0xc49cff },
+  { angle: 52, radius: 94, color: 0x70b7ff },
+  { angle: 96, radius: 116, color: 0xff8f70 },
+  { angle: 142, radius: 92, color: 0x8ef28b },
+  { angle: 188, radius: 116, color: 0x62e7f2 },
+];
 
 export default class Phase3Scene extends Phaser.Scene {
   constructor() {
@@ -154,10 +53,10 @@ export default class Phase3Scene extends Phaser.Scene {
 
   drawBackground() {
     drawRetroBackground(this, {
-      accent: 0x8ef28b,
+      accent: 0xff8f70,
       bottomLeft: 0x17283a,
       bottomRight: 0x0a1522,
-      gridAlpha: 0.04,
+      gridAlpha: 0.035,
       frameAlpha: 0.12,
     });
   }
@@ -168,38 +67,37 @@ export default class Phase3Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 48, "FASE 3: DISQUETE", {
+        .text(480, 54, "FASE 3: HD / DISCO RÍGIDO", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "20px",
-          color: "#8ef28b",
+          fontSize: "18px",
+          color: "#ff8f70",
         })
         .setOrigin(0.5),
     );
 
-    this.addToStage(
-      createRoundedPanel(this, 480, 278, 780, 374, {
-        stroke: 0x8ef28b,
-        strokeAlpha: 0.46,
-        radius: 20,
-      }),
-    );
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0d1930, 0.97);
+    panel.fillRoundedRect(96, 94, 768, 384, 18);
+    panel.lineStyle(2, 0xff8f70, 0.5);
+    panel.strokeRoundedRect(96, 94, 768, 384, 18);
+    this.addToStage(panel);
 
-    this.createIntroFloppyDisk(480, 155);
+    this.createIntroHardDrive(480, 162);
 
     this.addToStage(
       this.add
         .text(
           480,
-          298,
-          "Os disquetes permitiam transportar arquivos entre computadores,\nmas tinham capacidade muito pequena.",
+          304,
+          "O HD armazena dados em pratos magnéticos que giram rapidamente.\nUma cabeça de leitura se move até os setores para acessar os arquivos.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "20px",
+            fontSize: "19px",
             fontStyle: "700",
             color: "#dce8f5",
             align: "center",
-            lineSpacing: 7,
-            wordWrap: { width: 710 },
+            lineSpacing: 8,
+            wordWrap: { width: 690 },
           },
         )
         .setOrigin(0.5),
@@ -209,16 +107,16 @@ export default class Phase3Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          372,
-          "Escolha os arquivos importantes e salve no disquete\nsem ultrapassar o limite de espaço.",
+          390,
+          "Recupere os arquivos corretos movendo a cabeça de leitura,\nmas cuidado com vibrações.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "18px",
+            fontSize: "17px",
             fontStyle: "900",
             color: "#ffd166",
             align: "center",
-            lineSpacing: 5,
-            wordWrap: { width: 700 },
+            lineSpacing: 6,
+            wordWrap: { width: 650 },
           },
         )
         .setOrigin(0.5),
@@ -227,747 +125,623 @@ export default class Phase3Scene extends Phaser.Scene {
     this.createButton(
       480,
       454,
-      290,
+      292,
       "COMEÇAR DESAFIO",
       () => this.startChallenge(),
-      { border: 0x8ef28b, hover: 0x246a69 },
+      { border: 0x8ef28b, hover: 0x246a69, fontSize: "10px" },
     );
     this.createBackLink();
   }
 
   startChallenge() {
-    this.phase3SelectedIds = new Set();
-    this.phase3UsedCapacity = 0;
     this.phase3Score = PHASE3_STARTING_SCORE;
+    this.phase3RecoveredFiles = new Set();
+    this.phase3SectorObjects = [];
+    this.phase3IsMoving = false;
+    this.phase3IsVibrating = false;
     this.phase3IsComplete = false;
-    this.phase3FileCards = new Map();
-    this.phase3MissionCards = new Map();
-    this.setupRandomChallenge();
+    this.phase3ActionCount = 0;
+    this.phase3VibrationTween = null;
+    this.phase3VibrationPulse = null;
 
+    this.setupRandomChallenge();
     this.clearStage();
     this.phase3Stage = this.add.container(0, 0);
 
     this.addToStage(
       this.add
-        .text(480, 29, "FASE 3: DISQUETE", {
+        .text(480, 31, "DISCO RÍGIDO MAGNÉTICO", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "15px",
-          color: "#8ef28b",
+          color: "#ff8f70",
         })
         .setOrigin(0.5),
     );
 
     this.phase3ScoreText = this.add
-      .text(916, 29, "PONTOS: 100", {
+      .text(910, 31, "PONTOS: 100", {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "10px",
+        fontSize: "9px",
         color: "#8ef28b",
       })
       .setOrigin(1, 0.5);
     this.addToStage(this.phase3ScoreText);
 
     this.createObjectivePanel();
-    this.createFileList();
-    this.createStoragePanel();
+    this.createHardDriveLayout();
+    this.createStatusPanel();
+    this.createTipBox();
     this.createControls();
-    this.createFeedbackArea();
+    this.createFeedbackBox();
     this.createBackLink();
-    this.updateCapacityBar();
-    this.updateMissionState();
+
+    this.updateCurrentSectorVisual();
+    this.updateTargetPanel();
+    this.updateStabilizeButton();
 
     this.phase3Stage.setAlpha(0);
     this.tweens.add({
       targets: this.phase3Stage,
       alpha: 1,
-      duration: 280,
+      duration: 260,
       ease: "Sine.out",
     });
   }
 
   setupRandomChallenge() {
     const previousSignature = this.phase3ChallengeSignature;
+    const slotCount = PHASE3_SECTOR_SLOTS.length;
 
-    for (let attempt = 0; attempt < 150; attempt += 1) {
-      const fileCount = Phaser.Math.Between(
-        PHASE3_MIN_FILES,
-        PHASE3_MAX_FILES,
-      );
-      const importantCount = Phaser.Math.Between(3, 4);
-      const generatedFiles = PHASE3_FILE_TEMPLATES.map((template) =>
-        this.createFileFromTemplate(template),
-      );
-      const importantFiles = this.pickImportantFiles(
-        generatedFiles,
-        importantCount,
-      );
-
-      if (!importantFiles) {
-        continue;
-      }
-
-      const usedIds = new Set(importantFiles.map((file) => file.id));
-      const oversizedFile = this.shuffleItems(
-        generatedFiles.filter((file) => PHASE3_OVERSIZED_IDS.has(file.id)),
-      )[0];
-      const bulkyFile = this.shuffleItems(
-        generatedFiles.filter((file) => PHASE3_BULKY_IDS.has(file.id)),
-      )[0];
-
-      const selectedFiles = [...importantFiles, oversizedFile, bulkyFile];
-      usedIds.add(oversizedFile.id);
-      usedIds.add(bulkyFile.id);
-
-      const remainingFiles = this.shuffleItems(
-        generatedFiles.filter((file) => !usedIds.has(file.id)),
-      );
-
-      while (selectedFiles.length < fileCount && remainingFiles.length > 0) {
-        const nextFile = remainingFiles.pop();
-        selectedFiles.push(nextFile);
-        usedIds.add(nextFile.id);
-      }
-
-      const importantIds = new Set(importantFiles.map((file) => file.id));
-      const challengeFiles = this.shuffleItems(selectedFiles).map((file) => ({
-        ...file,
-        essential: importantIds.has(file.id),
+    for (let attempt = 0; attempt < 100; attempt += 1) {
+      const shuffledFiles = Phaser.Utils.Array.Shuffle([
+        ...PHASE3_FILE_POOL,
+      ]);
+      const files = PHASE3_SECTOR_SLOTS.map((slot, index) => ({
+        ...slot,
+        name: shuffledFiles[index],
+        sector: index + 1,
       }));
-      const signature = challengeFiles
-        .map(
-          (file) =>
-            `${file.id}:${file.size.toFixed(2)}:${file.essential ? "I" : "N"}`,
-        )
-        .join("|");
+      const targetFiles = Phaser.Utils.Array.Shuffle(
+        files.map((file) => file.name),
+      ).slice(0, PHASE3_TARGET_COUNT);
+      const signature = `${files
+        .map((file) => file.name)
+        .join("|")}::${targetFiles.join("|")}`;
 
       if (signature !== previousSignature) {
-        this.phase3Files = challengeFiles;
-        this.phase3ImportantFiles = challengeFiles.filter(
-          (file) => file.essential,
-        );
+        this.phase3Files = files;
+        this.phase3TargetFiles = targetFiles;
         this.phase3ChallengeSignature = signature;
+        this.phase3TargetIndex = 0;
+        this.phase3CurrentSectorIndex = Phaser.Math.Between(
+          0,
+          slotCount - 1,
+        );
+        this.phase3NextVibrationAt = Phaser.Math.Between(3, 5);
         return;
       }
     }
 
-    this.createFallbackChallenge();
-  }
-
-  createFileFromTemplate(template) {
-    const minSize = Math.round(template.minSize * 100);
-    const maxSize = Math.round(template.maxSize * 100);
-
-    return {
-      id: template.id,
-      name: template.name,
-      type: template.type,
-      size: Phaser.Math.Between(minSize, maxSize) / 100,
-      canBeImportant: template.canBeImportant,
-    };
-  }
-
-  pickImportantFiles(files, importantCount) {
-    const eligibleFiles = files.filter((file) => file.canBeImportant);
-    const minimumUsefulCapacity = importantCount === 4 ? 0.78 : 0.58;
-    const maximumUsefulCapacity = 1.3;
-
-    for (let attempt = 0; attempt < 80; attempt += 1) {
-      const candidates = this.shuffleItems(eligibleFiles).slice(
-        0,
-        importantCount,
-      );
-      const totalSize = candidates.reduce(
-        (total, file) => total + file.size,
-        0,
-      );
-
-      if (
-        totalSize >= minimumUsefulCapacity &&
-        totalSize <= maximumUsefulCapacity
-      ) {
-        return candidates;
-      }
-    }
-
-    return null;
-  }
-
-  createFallbackChallenge() {
-    const fallbackFiles = [
-      { id: "notes", name: "notas.txt", type: "TXT", size: 0.1, essential: true },
-      {
-        id: "document",
-        name: "trabalho.doc",
-        type: "DOC",
-        size: 0.28,
-        essential: true,
-      },
-      {
-        id: "summary",
-        name: "resumo.pdf",
-        type: "PDF",
-        size: 0.31,
-        essential: true,
-      },
-      {
-        id: "image",
-        name: "imagem.gif",
-        type: "GIF",
-        size: 0.39,
-        essential: true,
-      },
-      {
-        id: "music",
-        name: "musica.wav",
-        type: "WAV",
-        size: 1.16,
-        essential: false,
-      },
-      {
-        id: "video",
-        name: "video.avi",
-        type: "AVI",
-        size: 2.25,
-        essential: false,
-      },
-      {
-        id: "backup",
-        name: "backup.zip",
-        type: "ZIP",
-        size: 0.88,
-        essential: false,
-      },
+    this.phase3Files = PHASE3_SECTOR_SLOTS.map((slot, index) => ({
+      ...slot,
+      name: PHASE3_FILE_POOL[(index + 1) % PHASE3_FILE_POOL.length],
+      sector: index + 1,
+    }));
+    this.phase3TargetFiles = [
+      this.phase3Files[1].name,
+      this.phase3Files[4].name,
+      this.phase3Files[7].name,
     ];
-
-    this.phase3Files = this.shuffleItems(fallbackFiles);
-    this.phase3ImportantFiles = this.phase3Files.filter(
-      (file) => file.essential,
-    );
-    this.phase3ChallengeSignature = this.phase3Files
-      .map((file) => `${file.id}:${file.size.toFixed(2)}`)
-      .join("|");
-  }
-
-  shuffleItems(items) {
-    const shuffled = [...items];
-
-    for (let index = shuffled.length - 1; index > 0; index -= 1) {
-      const swapIndex = Phaser.Math.Between(0, index);
-      [shuffled[index], shuffled[swapIndex]] = [
-        shuffled[swapIndex],
-        shuffled[index],
-      ];
-    }
-
-    return shuffled;
+    this.phase3ChallengeSignature = `${this.phase3Files
+      .map((file) => file.name)
+      .join("|")}::${this.phase3TargetFiles.join("|")}`;
+    this.phase3TargetIndex = 0;
+    this.phase3CurrentSectorIndex = 0;
+    this.phase3NextVibrationAt = 4;
   }
 
   createObjectivePanel() {
-    this.addToStage(
-      createRoundedPanel(this, 480, 75, 740, 50, {
-        fill: 0x101f35,
-        stroke: 0xffd166,
-        strokeAlpha: 0.38,
-        radius: 12,
-        shadow: false,
-      }),
-    );
+    const panel = this.add.graphics();
+    panel.fillStyle(0x101f35, 0.98);
+    panel.fillRoundedRect(142, 52, 676, 58, 12);
+    panel.lineStyle(2, 0xffd166, 0.4);
+    panel.strokeRoundedRect(142, 52, 676, 58, 12);
+    this.addToStage(panel);
 
     this.addToStage(
       this.add
         .text(
           480,
-          75,
-          "Objetivo: salve os arquivos importantes sem ultrapassar 1,44 MB.",
+          81,
+          "Objetivo: mova a cabeça de leitura até o setor correto e recupere os arquivos.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "16px",
             fontStyle: "900",
-            color: "#ffd166",
+            color: "#f1f7ff",
             align: "center",
+            wordWrap: { width: 620 },
           },
         )
         .setOrigin(0.5),
     );
   }
 
-  createFileList() {
-    this.addToStage(
-      createRoundedPanel(this, 280, 278, 500, 330, {
-        fill: 0x0b1729,
-        stroke: 0x62e7f2,
-        strokeAlpha: 0.32,
-        radius: 16,
-      }),
+  createHardDriveLayout() {
+    this.phase3DriveContainer = this.add.container(
+      PHASE3_DRIVE_POSITION.x,
+      PHASE3_DRIVE_POSITION.y,
     );
+    this.addToStage(this.phase3DriveContainer);
+
+    this.createDriveShell();
+    this.createDiskPlatter();
+    this.createReadHead();
+    this.createSectors();
+
+    this.phase3VibrationBanner = this.add.container(0, -182).setVisible(false);
+    const bannerBg = this.add.graphics();
+    bannerBg.fillStyle(0x2d1212, 0.97);
+    bannerBg.fillRoundedRect(-164, -18, 328, 36, 10);
+    bannerBg.lineStyle(2, 0xff7b68, 0.92);
+    bannerBg.strokeRoundedRect(-164, -18, 328, 36, 10);
+    const bannerText = this.add
+      .text(0, 0, "VIBRACAO DETECTADA!", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "10px",
+        color: "#ff9b78",
+      })
+      .setOrigin(0.5);
+    this.phase3VibrationBanner.add([bannerBg, bannerText]);
+    this.phase3DriveContainer.add(this.phase3VibrationBanner);
+  }
+
+  createDriveShell() {
+    const drive = this.add.graphics();
+    drive.fillStyle(0x0b1324, 1);
+    drive.fillRoundedRect(-204, -166, 408, 332, 22);
+    drive.lineStyle(4, 0x31445a, 1);
+    drive.strokeRoundedRect(-204, -166, 408, 332, 22);
+    drive.fillStyle(0x13283a, 1);
+    drive.fillRoundedRect(-188, -150, 376, 300, 16);
+    drive.lineStyle(2, 0x62e7f2, 0.22);
+    drive.strokeRoundedRect(-188, -150, 376, 300, 16);
+    drive.fillStyle(0x07101f, 0.78);
+    drive.fillCircle(PHASE3_PLATTER_CENTER.x, PHASE3_PLATTER_CENTER.y, 150);
+    drive.lineStyle(2, 0xff8f70, 0.25);
+    drive.strokeCircle(PHASE3_PLATTER_CENTER.x, PHASE3_PLATTER_CENTER.y, 150);
+    drive.fillStyle(0x263a52, 1);
+    drive.fillRoundedRect(-174, 118, 348, 32, 8);
+    drive.fillStyle(0x62e7f2, 0.3);
+    drive.fillRoundedRect(-160, 129, 226, 8, 4);
+    drive.fillStyle(0x8ef28b, 0.72);
+    drive.fillCircle(130, 134, 5);
+    drive.fillStyle(0xffd166, 0.72);
+    drive.fillCircle(150, 134, 5);
+    this.phase3DriveContainer.add(drive);
+  }
+
+  createDiskPlatter() {
+    this.phase3PlatterSpin = this.add.container(
+      PHASE3_PLATTER_CENTER.x,
+      PHASE3_PLATTER_CENTER.y,
+    );
+    this.phase3DriveContainer.add(this.phase3PlatterSpin);
+
+    const platter = this.add.graphics();
+    platter.fillStyle(0xb7c9d6, 1);
+    platter.fillCircle(0, 0, 132);
+    platter.lineStyle(5, 0xf1f7ff, 0.34);
+    platter.strokeCircle(0, 0, 132);
+
+    [116, 92, 68, 44].forEach((radius, index) => {
+      const colors = [0x62e7f2, 0xffd166, 0xc49cff, 0x8ef28b];
+      platter.lineStyle(4, colors[index], 0.2 + index * 0.02);
+      platter.strokeCircle(0, 0, radius);
+    });
+
+    platter.fillStyle(0xffffff, 0.18);
+    platter.beginPath();
+    platter.moveTo(-98, -72);
+    platter.lineTo(-20, -16);
+    platter.lineTo(-48, 22);
+    platter.lineTo(-116, -38);
+    platter.closePath();
+    platter.fillPath();
+    platter.fillStyle(0x62e7f2, 0.12);
+    platter.beginPath();
+    platter.moveTo(88, -86);
+    platter.lineTo(22, -16);
+    platter.lineTo(55, 24);
+    platter.lineTo(120, -30);
+    platter.closePath();
+    platter.fillPath();
+    platter.fillStyle(0x0b1627, 1);
+    platter.fillCircle(0, 0, 24);
+    platter.lineStyle(5, 0x8799a8, 0.85);
+    platter.strokeCircle(0, 0, 24);
+
+    this.phase3PlatterSpin.add(platter);
+    this.tweens.add({
+      targets: this.phase3PlatterSpin,
+      angle: 360,
+      duration: 20000,
+      repeat: -1,
+      ease: "Linear",
+    });
+  }
+
+  createSectors() {
+    this.phase3SectorHighlight = this.add
+      .circle(0, 0, 29, 0xffd166, 0.1)
+      .setStrokeStyle(4, 0xffd166, 0.95)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.phase3DriveContainer.add(this.phase3SectorHighlight);
+
+    this.phase3Files.forEach((file, index) => {
+      const position = this.getSectorPosition(file);
+      const sectorContainer = this.add
+        .container(position.x, position.y)
+        .setDepth(2);
+      const centerOffsetX = position.x - PHASE3_PLATTER_CENTER.x;
+      const centerOffsetY = position.y - PHASE3_PLATTER_CENTER.y;
+      const distance = Math.hypot(centerOffsetX, centerOffsetY) || 1;
+      const labelX = (centerOffsetX / distance) * 30;
+      const labelY = (centerOffsetY / distance) * 30;
+      const marker = this.add
+        .circle(0, 0, 17, 0x07101f, 1)
+        .setStrokeStyle(3, file.color, 0.9);
+      const dot = this.add.circle(0, 0, 5, file.color, 1);
+      const tag = this.add.rectangle(
+        labelX,
+        labelY,
+        92,
+        20,
+        0xf1f7ff,
+        0.96,
+      );
+      const label = this.add
+        .text(labelX, labelY, file.name, {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "10px",
+          fontStyle: "900",
+          color: "#07101f",
+          align: "center",
+        })
+        .setOrigin(0.5);
+      const recovered = this.add
+        .text(0, -1, "OK", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
+          color: "#8ef28b",
+        })
+        .setOrigin(0.5)
+        .setVisible(false);
+
+      sectorContainer.add([marker, dot, tag, label, recovered]);
+      this.phase3DriveContainer.add(sectorContainer);
+      this.phase3SectorObjects.push({
+        container: sectorContainer,
+        marker,
+        dot,
+        tag,
+        label,
+        recovered,
+        file,
+        index,
+      });
+    });
+  }
+
+  createReadHead() {
+    this.phase3ArmGraphics = this.add.graphics();
+    this.phase3DriveContainer.add(this.phase3ArmGraphics);
+
+    this.phase3HeadPivot = this.add
+      .circle(PHASE3_HEAD_PIVOT.x, PHASE3_HEAD_PIVOT.y, 18, 0x263a52, 1)
+      .setStrokeStyle(4, 0x62e7f2, 0.58);
+    this.phase3DriveContainer.add(this.phase3HeadPivot);
+
+    this.phase3HeadTip = this.add
+      .rectangle(0, 0, 58, 18, 0x60758a, 1)
+      .setStrokeStyle(2, 0xf1f7ff, 0.42);
+    this.phase3DriveContainer.add(this.phase3HeadTip);
+
+    this.updateReadHeadPosition(false);
+  }
+
+  createStatusPanel() {
+    const panel = this.add.graphics();
+    panel.fillStyle(0x101f35, 0.98);
+    panel.fillRoundedRect(568, 124, 334, 140, 14);
+    panel.lineStyle(2, 0xff8f70, 0.4);
+    panel.strokeRoundedRect(568, 124, 334, 140, 14);
+    this.addToStage(panel);
 
     this.addToStage(
       this.add
-        .text(280, 130, "ARQUIVOS DISPONÍVEIS", {
+        .text(735, 146, "ARQUIVO PROCURADO", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "9px",
+          fontSize: "8px",
+          color: "#ffd166",
+        })
+        .setOrigin(0.5),
+    );
+
+    this.phase3TargetText = this.add
+      .text(735, 181, "", {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "24px",
+        fontStyle: "900",
+        color: "#f1f7ff",
+        align: "center",
+        wordWrap: { width: 292 },
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase3TargetText);
+
+    this.phase3CurrentSectorText = this.add
+      .text(735, 222, "", {
+        fontFamily: '"Nunito", sans-serif',
+        fontSize: "13px",
+        fontStyle: "800",
+        color: "#c7d7e8",
+        align: "center",
+        wordWrap: { width: 288 },
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase3CurrentSectorText);
+
+    this.phase3RecoveredText = this.add
+      .text(735, 246, "", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "8px",
+        color: "#8ef28b",
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase3RecoveredText);
+  }
+
+  createTipBox() {
+    const panel = this.add.graphics();
+    panel.fillStyle(0x101f35, 0.98);
+    panel.fillRoundedRect(592, 286, 286, 84, 12);
+    panel.lineStyle(2, 0x62e7f2, 0.34);
+    panel.strokeRoundedRect(592, 286, 286, 84, 12);
+    this.addToStage(panel);
+
+    this.addToStage(
+      this.add
+        .text(735, 308, "DICA", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
           color: "#62e7f2",
         })
         .setOrigin(0.5),
     );
 
-    const columnPositions = [168, 392];
-    const rowPositions = [170, 229, 288, 347];
-
-    this.phase3Files.forEach((file, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
-      this.createFileCard(
-        file,
-        columnPositions[column],
-        rowPositions[row],
-      );
-    });
-  }
-
-  createFileCard(file, x, y) {
-    const cardContainer = this.add.container(x, y);
-    const background = this.add
-      .rectangle(0, 0, 210, 50, 0x16263a, 1)
-      .setStrokeStyle(2, 0x40566d, 0.82)
-      .setInteractive({ useHandCursor: true });
-    const icon = this.add
-      .rectangle(-83, 0, 31, 32, this.getFileColor(file.type), 0.94)
-      .setStrokeStyle(1, 0xf1f7ff, 0.34);
-    const typeText = this.add
-      .text(-83, 0, file.type, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: file.type.length > 3 ? "4px" : "5px",
-        color: "#07101f",
-      })
-      .setOrigin(0.5);
-    const nameText = this.add
-      .text(-61, -9, file.name, {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "13px",
-        fontStyle: "900",
-        color: "#f1f7ff",
-      })
-      .setOrigin(0, 0.5);
-    const sizeText = this.add
-      .text(-61, 11, `${this.formatCapacity(file.size)} MB`, {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "6px",
-        color: "#9fb1c6",
-      })
-      .setOrigin(0, 0.5);
-    const selectedMark = this.add
-      .text(91, 12, "OK", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "6px",
-        color: "#8ef28b",
-      })
-      .setOrigin(1, 0.5)
-      .setVisible(false);
-    const importantTag = this.add
-      .text(96, -13, "IMPORTANTE", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "5px",
-        color: "#ffd166",
-        backgroundColor: "#493d1c",
-        padding: { left: 4, right: 4, top: 3, bottom: 3 },
-      })
-      .setOrigin(1, 0.5)
-      .setVisible(file.essential);
-
-    cardContainer.add([
-      background,
-      icon,
-      typeText,
-      nameText,
-      sizeText,
-      selectedMark,
-      importantTag,
-    ]);
-    this.addToStage(cardContainer);
-
-    background.on("pointerover", () => {
-      if (!this.phase3IsComplete) {
-        background.setFillStyle(
-          this.phase3SelectedIds.has(file.id) ? 0x285b68 : 0x203b50,
-        );
-      }
-    });
-    background.on("pointerout", () => {
-      background.setFillStyle(
-        this.phase3SelectedIds.has(file.id) ? 0x245064 : 0x16263a,
-      );
-    });
-    background.on("pointerdown", () => this.toggleFileSelection(file.id));
-
-    this.phase3FileCards.set(file.id, {
-      container: cardContainer,
-      background,
-      selectedMark,
-    });
-  }
-
-  createStoragePanel() {
-    this.addToStage(
-      createRoundedPanel(this, 755, 278, 310, 330, {
-        fill: 0x0b1729,
-        stroke: 0x8ef28b,
-        strokeAlpha: 0.34,
-        radius: 16,
-      }),
-    );
-
-    this.createMissionList();
-    this.createFloppyDisk();
-    this.createCapacityBar();
-
     this.addToStage(
       this.add
         .text(
-          755,
-          425,
-          "Dica: disquetes tinham pouco espaço.\nEscolha apenas o essencial.",
+          735,
+          340,
+          "O HD usa uma cabeça mecânica para acessar setores nos pratos magnéticos.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "12px",
+            fontSize: "13px",
             fontStyle: "800",
             color: "#c7d7e8",
             align: "center",
-            lineSpacing: 2,
+            lineSpacing: 3,
+            wordWrap: { width: 246 },
           },
         )
         .setOrigin(0.5),
     );
   }
 
-  createMissionList() {
-    this.addToStage(
-      this.add
-        .text(755, 130, "MISSÃO: ARQUIVOS IMPORTANTES", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "7px",
-          color: "#ffd166",
-        })
-        .setOrigin(0.5),
+  createControls() {
+    this.phase3BackButton = this.createButton(
+      190,
+      454,
+      170,
+      "SETOR ANTERIOR",
+      () => this.moveToPreviousSector(),
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
     );
 
-    const columns = [688, 822];
-    const rows = [157, 184];
+    this.phase3ForwardButton = this.createButton(
+      382,
+      454,
+      170,
+      "PRÓXIMO SETOR",
+      () => this.moveToNextSector(),
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
+    );
 
-    this.phase3ImportantFiles.forEach((file, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
-      const chipContainer = this.add.container(
-        columns[column],
-        rows[row],
-      );
-      const chipBackground = this.add
-        .rectangle(0, 0, 124, 22, 0x2f2919, 1)
-        .setStrokeStyle(1, 0xffd166, 0.55);
-      const chipText = this.add
-        .text(0, 0, file.name, {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "11px",
-          fontStyle: "900",
-          color: "#ffe39a",
-        })
-        .setOrigin(0.5);
+    this.phase3ReadButton = this.createButton(
+      574,
+      454,
+      170,
+      "LER SETOR",
+      () => this.readCurrentSector(),
+      { border: 0x8ef28b, hover: 0x246a69, fontSize: "9px" },
+    );
 
-      chipContainer.add([chipBackground, chipText]);
-      this.addToStage(chipContainer);
-      this.phase3MissionCards.set(file.id, {
-        container: chipContainer,
-        background: chipBackground,
-        text: chipText,
-      });
-    });
+    this.phase3StabilizeButton = this.createButton(
+      782,
+      454,
+      214,
+      "ESTABILIZAR HD",
+      () => this.stabilizeHardDrive(),
+      { border: 0xffd166, hover: 0x5c4b22, fontSize: "8px" },
+    );
   }
 
-  createFloppyDisk() {
-    const x = 677;
-    const y = 207;
-    const width = 156;
-    const height = 122;
-    const graphics = this.add.graphics();
+  createFeedbackBox() {
+    const panel = this.add.graphics();
+    panel.fillStyle(0x091424, 0.98);
+    panel.fillRoundedRect(90, 492, 780, 34, 10);
+    panel.lineStyle(2, 0x62e7f2, 0.25);
+    panel.strokeRoundedRect(90, 492, 780, 34, 10);
+    this.addToStage(panel);
 
-    graphics.fillStyle(0x000000, 0.28);
-    graphics.fillRoundedRect(x + 7, y + 8, width, height, 11);
-    graphics.fillStyle(0x274c46, 1);
-    graphics.fillRoundedRect(x, y, width, height, 11);
-    graphics.lineStyle(3, 0x8ef28b, 0.58);
-    graphics.strokeRoundedRect(x, y, width, height, 11);
-
-    graphics.fillStyle(0xb8c2c7, 1);
-    graphics.fillRoundedRect(x + 34, y, 88, 45, 4);
-    graphics.fillStyle(0x26343e, 1);
-    graphics.fillRect(x + 91, y + 7, 19, 31);
-    graphics.fillStyle(0x8da2bd, 0.45);
-    graphics.fillRect(x + 43, y + 8, 35, 29);
-
-    graphics.fillStyle(0xd8cfaa, 1);
-    graphics.fillRoundedRect(x + 27, y + 65, 102, 46, 6);
-    graphics.lineStyle(2, 0x786f50, 0.55);
-    graphics.strokeRoundedRect(x + 27, y + 65, 102, 46, 6);
-    graphics.lineBetween(x + 41, y + 83, x + 114, y + 83);
-    graphics.lineBetween(x + 41, y + 96, x + 103, y + 96);
-    this.addToStage(graphics);
-
-    this.phase3DiskGlow = this.add
-      .rectangle(
-        x + width / 2,
-        y + height / 2,
-        width + 12,
-        height + 12,
-        14,
-      )
-      .setStrokeStyle(4, 0x8ef28b, 0)
-      .setFillStyle(0x8ef28b, 0);
-    this.addToStage(this.phase3DiskGlow);
-
-    this.phase3SelectionText = this.add
-      .text(x + width / 2, y + 88, "0 arquivos", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "6px",
-        color: "#514a34",
-        align: "center",
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase3SelectionText);
-  }
-
-  createCapacityBar() {
-    this.addToStage(
-      this.add
-        .text(755, 347, "CAPACIDADE DO DISQUETE: 1,44 MB", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "7px",
-          color: "#ffd166",
-        })
-        .setOrigin(0.5),
-    );
-
-    this.addToStage(
-      this.add
-        .rectangle(755, 373, 250, 24, 0x07101f, 1)
-        .setStrokeStyle(2, 0x60758a, 0.9),
-    );
-
-    this.phase3CapacityFill = this.add
-      .rectangle(632, 373, 246, 18, 0x8ef28b, 1)
-      .setOrigin(0, 0.5)
-      .setScale(0, 1);
-    this.addToStage(this.phase3CapacityFill);
-
-    this.phase3CapacityText = this.add
-      .text(755, 399, "Usado: 0,00 MB / 1,44 MB", {
+    this.phase3FeedbackText = this.add
+      .text(480, 509, "Use os botões para mover a cabeça até o arquivo procurado.", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "14px",
         fontStyle: "900",
-        color: "#dce8f5",
+        color: "#8da2bd",
+        align: "center",
+        wordWrap: { width: 720 },
       })
       .setOrigin(0.5);
-    this.addToStage(this.phase3CapacityText);
+    this.addToStage(this.phase3FeedbackText);
   }
 
-  createControls() {
-    this.phase3ClearButton = this.createButton(
-      169,
-      416,
-      205,
-      "LIMPAR SELEÇÃO",
-      () => this.clearSelection(),
-      {
-        border: 0xffd166,
-        hover: 0x564624,
-        fontSize: "8px",
-        height: 48,
-      },
-    );
-    this.phase3SaveButton = this.createButton(
-      391,
-      416,
-      225,
-      "SALVAR NO DISQUETE",
-      () => this.validateSelection(),
-      {
-        border: 0x8ef28b,
-        hover: 0x246a69,
-        fontSize: "8px",
-        height: 48,
-      },
-    );
+  moveToPreviousSector() {
+    this.moveReadHead(-1);
   }
 
-  createFeedbackArea() {
-    this.addToStage(
-      createRoundedPanel(this, 480, 503, 850, 36, {
-        fill: 0x091424,
-        stroke: 0x62e7f2,
-        strokeAlpha: 0.24,
-        radius: 10,
-        shadow: false,
-        highlight: false,
-      }),
-    );
-
-    this.phase3MessageText = this.add
-      .text(
-        480,
-        503,
-        `Selecione os ${this.phase3ImportantFiles.length} arquivos importantes.`,
-        {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "14px",
-          fontStyle: "800",
-          color: "#8da2bd",
-          align: "center",
-          wordWrap: { width: 800 },
-        },
-      )
-      .setOrigin(0.5);
-    this.addToStage(this.phase3MessageText);
+  moveToNextSector() {
+    this.moveReadHead(1);
   }
 
-  toggleFileSelection(fileId) {
+  moveReadHead(direction) {
+    if (this.phase3IsComplete || this.phase3IsMoving) {
+      return;
+    }
+
+    if (this.phase3IsVibrating) {
+      this.showFeedback("Vibração detectada! Estabilize o HD antes de continuar.", "warning");
+      this.cameras.main.shake(120, 0.002);
+      return;
+    }
+
+    this.phase3CurrentSectorIndex = Phaser.Math.Wrap(
+      this.phase3CurrentSectorIndex + direction,
+      0,
+      this.phase3Files.length,
+    );
+    this.phase3IsMoving = true;
+    this.updateScore(-1);
+    this.countActionAndMaybeVibrate();
+    this.updateCurrentSectorVisual();
+    this.showFeedback("Cabeça movida. Confira o setor antes de ler.", "neutral");
+    this.updateReadHeadPosition(true, () => {
+      this.phase3IsMoving = false;
+    });
+  }
+
+  readCurrentSector() {
     if (this.phase3IsComplete) {
       return;
     }
 
-    const file = this.getFileById(fileId);
-    const card = this.phase3FileCards.get(fileId);
-    const wasOverCapacity = this.isOverCapacity();
-
-    if (this.phase3SelectedIds.has(fileId)) {
-      this.phase3SelectedIds.delete(fileId);
-      this.showFeedback("Arquivo removido da seleção.", "neutral");
-    } else {
-      this.phase3SelectedIds.add(fileId);
-      this.showFeedback("Arquivo selecionado.", "success");
+    if (this.phase3IsMoving) {
+      this.showFeedback("Aguarde a cabeça chegar ao setor.", "warning");
+      return;
     }
 
-    const isSelected = this.phase3SelectedIds.has(fileId);
-    this.updateFileCard(card, isSelected);
-    this.updateCapacityBar();
-    this.updateMissionState();
+    if (this.phase3IsVibrating) {
+      this.updateScore(-10);
+      this.showFailure("A leitura falhou por causa da vibração.");
+      return;
+    }
 
-    const isOverCapacity = this.isOverCapacity();
-    if (!wasOverCapacity && isOverCapacity) {
-      this.updateScore(-PHASE3_CAPACITY_PENALTY);
-      this.showFeedback(
-        file.size > PHASE3_CAPACITY_MB
-          ? "Esse arquivo é grande demais para caber no disquete."
-          : "Espaço insuficiente no disquete.",
-        "error",
-      );
-      this.animateCapacityWarning();
+    const currentFile = this.phase3Files[this.phase3CurrentSectorIndex].name;
+    const targetFile = this.phase3TargetFiles[this.phase3TargetIndex];
+
+    if (currentFile !== targetFile) {
+      this.updateScore(-10);
+      this.countActionAndMaybeVibrate();
+      this.showFailure("Esse setor não contém o arquivo procurado.");
+      return;
+    }
+
+    this.phase3RecoveredFiles.add(currentFile);
+    this.phase3SectorObjects[this.phase3CurrentSectorIndex].recovered.setVisible(true);
+    this.showSuccess("Arquivo recuperado com sucesso!");
+    this.createRecoverySparkles(this.phase3CurrentSectorIndex);
+    this.phase3TargetIndex += 1;
+
+    if (this.phase3TargetIndex >= this.phase3TargetFiles.length) {
+      this.phase3IsComplete = true;
+      this.disableChallengeControls();
+      this.showFeedback("Todos os arquivos importantes foram recuperados!", "success");
+      this.time.delayedCall(1300, () => this.showConclusion());
+      return;
+    }
+
+    this.countActionAndMaybeVibrate();
+    this.updateTargetPanel();
+  }
+
+  countActionAndMaybeVibrate() {
+    if (this.phase3IsComplete || this.phase3IsVibrating) {
+      return;
+    }
+
+    this.phase3ActionCount += 1;
+    if (this.phase3ActionCount >= this.phase3NextVibrationAt) {
+      this.triggerVibration();
     }
   }
 
-  updateFileCard(card, isSelected) {
-    card.selectedMark.setVisible(isSelected);
-    card.background
-      .setFillStyle(isSelected ? 0x245064 : 0x16263a)
-      .setStrokeStyle(
-        isSelected ? 3 : 2,
-        isSelected ? 0x8ef28b : 0x40566d,
-        isSelected ? 1 : 0.82,
-      );
+  triggerVibration() {
+    if (this.phase3IsComplete || this.phase3IsVibrating) {
+      return;
+    }
+
+    this.phase3IsVibrating = true;
+    this.phase3VibrationBanner.setVisible(true);
+    this.updateStabilizeButton();
+    this.showFeedback("Vibração detectada! Estabilize o HD antes de continuar.", "warning");
+
+    this.phase3VibrationTween = this.tweens.add({
+      targets: this.phase3DriveContainer,
+      x: PHASE3_DRIVE_POSITION.x + 4,
+      y: PHASE3_DRIVE_POSITION.y - 2,
+      duration: 55,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
+
+    this.phase3VibrationPulse = this.tweens.add({
+      targets: this.phase3VibrationBanner,
+      scale: 1.06,
+      duration: 170,
+      yoyo: true,
+      repeat: -1,
+      ease: "Sine.inOut",
+    });
+  }
+
+  stabilizeHardDrive() {
+    if (this.phase3IsComplete || !this.phase3IsVibrating) {
+      return;
+    }
+
+    this.phase3IsVibrating = false;
+    this.stopVibrationTweens();
+    this.phase3DriveContainer.setPosition(
+      PHASE3_DRIVE_POSITION.x,
+      PHASE3_DRIVE_POSITION.y,
+    );
+    this.phase3VibrationBanner.setVisible(false).setScale(1);
+    this.phase3ActionCount = 0;
+    this.phase3NextVibrationAt = Phaser.Math.Between(3, 6);
+    this.updateStabilizeButton();
+    this.showFeedback("HD estabilizado. A leitura pode continuar.", "success");
 
     this.tweens.add({
-      targets: card.container,
-      scale: isSelected ? 1.035 : 1,
-      duration: 140,
-      ease: "Back.out",
+      targets: this.phase3DriveContainer,
+      scale: 1.025,
+      duration: 130,
+      yoyo: true,
+      ease: "Sine.inOut",
     });
-  }
-
-  updateCapacityBar() {
-    this.phase3UsedCapacity = this.phase3Files.reduce((total, file) => {
-      return this.phase3SelectedIds.has(file.id) ? total + file.size : total;
-    }, 0);
-
-    const ratio = this.phase3UsedCapacity / PHASE3_CAPACITY_MB;
-    const displayedRatio = Phaser.Math.Clamp(ratio, 0, 1);
-    const overCapacity = this.isOverCapacity();
-    const nearCapacity = ratio >= 0.82;
-    const color = overCapacity
-      ? 0xff7b68
-      : nearCapacity
-        ? 0xffd166
-        : 0x8ef28b;
-
-    this.tweens.killTweensOf(this.phase3CapacityFill);
-    this.phase3CapacityFill.setFillStyle(color);
-    this.tweens.add({
-      targets: this.phase3CapacityFill,
-      scaleX: displayedRatio,
-      duration: 210,
-      ease: "Sine.out",
-    });
-
-    this.phase3CapacityText
-      .setText(
-        `Usado: ${this.formatCapacity(this.phase3UsedCapacity)} MB / 1,44 MB`,
-      )
-      .setColor(
-        overCapacity ? "#ff9b78" : nearCapacity ? "#ffd166" : "#dce8f5",
-      );
-
-    const selectedCount = this.phase3SelectedIds.size;
-    this.phase3SelectionText.setText(
-      `${selectedCount} ${selectedCount === 1 ? "arquivo" : "arquivos"}`,
-    );
-  }
-
-  updateMissionState() {
-    this.phase3ImportantFiles.forEach((file) => {
-      const missionCard = this.phase3MissionCards.get(file.id);
-      const selected = this.phase3SelectedIds.has(file.id);
-
-      missionCard.background
-        .setFillStyle(selected ? 0x173d35 : 0x2f2919, 1)
-        .setStrokeStyle(
-          selected ? 2 : 1,
-          selected ? 0x8ef28b : 0xffd166,
-          selected ? 0.9 : 0.55,
-        );
-      missionCard.text.setColor(selected ? "#8ef28b" : "#ffe39a");
-    });
-  }
-
-  validateSelection() {
-    if (this.phase3IsComplete) {
-      return;
-    }
-
-    if (this.isOverCapacity()) {
-      this.showFailure("Espaço insuficiente! Remova algum arquivo.");
-      this.animateCapacityWarning();
-      return;
-    }
-
-    const missingImportantFiles = this.phase3ImportantFiles.filter(
-      (file) => !this.phase3SelectedIds.has(file.id),
-    );
-
-    if (missingImportantFiles.length > 0) {
-      this.showFailure("Alguns arquivos importantes ficaram de fora.");
-      this.animateMissingFiles(missingImportantFiles);
-      return;
-    }
-
-    this.showSuccess();
-  }
-
-  clearSelection() {
-    if (this.phase3IsComplete || this.phase3SelectedIds.size === 0) {
-      return;
-    }
-
-    this.phase3SelectedIds.clear();
-    this.phase3FileCards.forEach((card) => this.updateFileCard(card, false));
-    this.updateCapacityBar();
-    this.updateMissionState();
-    this.showFeedback("Seleção limpa. Escolha novamente.", "warning");
   }
 
   updateScore(change) {
@@ -987,115 +761,153 @@ export default class Phase3Scene extends Phaser.Scene {
     });
   }
 
-  showFeedback(message, type = "neutral") {
-    const colors = {
-      neutral: "#8da2bd",
-      success: "#8ef28b",
-      error: "#ff9b78",
-      warning: "#ffd166",
+  updateTargetPanel() {
+    const targetFile = this.phase3TargetFiles[this.phase3TargetIndex];
+    this.phase3TargetText.setText(targetFile);
+    this.phase3RecoveredText.setText(
+      `RECUPERADOS: ${this.phase3RecoveredFiles.size} / ${this.phase3TargetFiles.length}`,
+    );
+  }
+
+  updateCurrentSectorVisual() {
+    const currentFile = this.phase3Files[this.phase3CurrentSectorIndex];
+    const position = this.getSectorPosition(currentFile);
+
+    this.phase3SectorHighlight.setPosition(position.x, position.y);
+    this.phase3CurrentSectorText.setText(
+      `Setor atual: ${currentFile.sector} - ${currentFile.name}`,
+    );
+    this.updateTargetPanel();
+
+    this.phase3SectorObjects.forEach(({ marker, dot, tag, label, file }, index) => {
+      const isCurrent = index === this.phase3CurrentSectorIndex;
+      const isRecovered = this.phase3RecoveredFiles.has(file.name);
+      marker.setFillStyle(isCurrent ? 0x183749 : 0x07101f, 1);
+      marker.setStrokeStyle(isCurrent ? 4 : 3, file.color, isCurrent ? 1 : 0.76);
+      dot.setAlpha(isRecovered ? 0.35 : 1);
+      tag.setFillStyle(isCurrent ? 0xfff2c2 : 0xf1f7ff, 0.95);
+      label.setColor(isRecovered ? "#35714a" : "#07101f");
+      label.setText(isRecovered ? `${file.name}` : file.name);
+    });
+  }
+
+  updateReadHeadPosition(animate = true, onComplete = null) {
+    const currentFile = this.phase3Files[this.phase3CurrentSectorIndex];
+    const position = this.getSectorPosition(currentFile);
+
+    const drawArm = () => {
+      const angle = Phaser.Math.Angle.Between(
+        PHASE3_HEAD_PIVOT.x,
+        PHASE3_HEAD_PIVOT.y,
+        this.phase3HeadTip.x,
+        this.phase3HeadTip.y,
+      );
+      const distance = Phaser.Math.Distance.Between(
+        PHASE3_HEAD_PIVOT.x,
+        PHASE3_HEAD_PIVOT.y,
+        this.phase3HeadTip.x,
+        this.phase3HeadTip.y,
+      );
+
+      this.phase3ArmGraphics.clear();
+      this.phase3ArmGraphics.lineStyle(13, 0x60758a, 1);
+      this.phase3ArmGraphics.lineBetween(
+        PHASE3_HEAD_PIVOT.x,
+        PHASE3_HEAD_PIVOT.y,
+        this.phase3HeadTip.x,
+        this.phase3HeadTip.y,
+      );
+      this.phase3ArmGraphics.lineStyle(3, 0xf1f7ff, 0.32);
+      this.phase3ArmGraphics.lineBetween(
+        PHASE3_HEAD_PIVOT.x,
+        PHASE3_HEAD_PIVOT.y,
+        this.phase3HeadTip.x,
+        this.phase3HeadTip.y,
+      );
+      this.phase3HeadTip.setRotation(angle);
+      this.phase3HeadTip.setDisplaySize(Math.min(60, distance * 0.32), 18);
     };
 
-    this.phase3MessageText
-      .setText(message)
-      .setColor(colors[type] ?? colors.neutral);
-  }
+    if (!animate) {
+      this.phase3HeadTip.setPosition(position.x, position.y);
+      drawArm();
+      return;
+    }
 
-  showFailure(message) {
-    this.updateScore(-PHASE3_SAVE_PENALTY);
-    this.showFeedback(message, "error");
-    this.cameras.main.shake(120, 0.002);
-  }
-
-  animateCapacityWarning() {
-    this.phase3CapacityFill.setX(632);
-    this.phase3CapacityText.setX(755);
     this.tweens.add({
-      targets: [this.phase3CapacityFill, this.phase3CapacityText],
-      x: "+=5",
-      duration: 55,
-      yoyo: true,
-      repeat: 2,
+      targets: this.phase3HeadTip,
+      x: position.x,
+      y: position.y,
+      duration: 340,
       ease: "Sine.inOut",
+      onUpdate: drawArm,
       onComplete: () => {
-        this.phase3CapacityFill.setX(632);
-        this.phase3CapacityText.setX(755);
+        drawArm();
+        if (onComplete) {
+          onComplete();
+        }
       },
     });
   }
 
-  animateMissingFiles(missingFiles) {
-    missingFiles.forEach((file) => {
-      const card = this.phase3FileCards.get(file.id);
-      const missionCard = this.phase3MissionCards.get(file.id);
+  updateStabilizeButton() {
+    if (!this.phase3StabilizeButton) {
+      return;
+    }
 
-      card.background.setStrokeStyle(3, 0xff7b68, 1);
-      missionCard.background.setStrokeStyle(2, 0xff7b68, 1);
-      missionCard.text.setColor("#ff9b78");
+    this.phase3StabilizeButton.setVisible(this.phase3IsVibrating);
+    if (this.phase3IsVibrating) {
+      this.phase3StabilizeButton.setEnabled(true);
+    } else {
+      this.phase3StabilizeButton.setEnabled(false);
+    }
+  }
 
-      this.tweens.add({
-        targets: [card.container, missionCard.container],
-        x: "+=5",
-        duration: 55,
-        yoyo: true,
-        repeat: 2,
-        ease: "Sine.inOut",
-        onComplete: () => {
-          card.background.setStrokeStyle(2, 0x40566d, 0.82);
-          this.updateMissionState();
-        },
-      });
+  showFeedback(message, type = "neutral") {
+    const colors = {
+      success: "#8ef28b",
+      error: "#ff9b78",
+      warning: "#ffd166",
+      neutral: "#8da2bd",
+    };
+    this.phase3FeedbackText.setText(message).setColor(colors[type] ?? colors.neutral);
+
+    this.tweens.killTweensOf(this.phase3FeedbackText);
+    this.tweens.add({
+      targets: this.phase3FeedbackText,
+      scale: type === "error" ? 1.03 : 1.02,
+      duration: 100,
+      yoyo: true,
+      ease: "Sine.inOut",
     });
   }
 
-  showSuccess() {
-    this.phase3IsComplete = true;
-    this.disableChallengeControls();
-    this.showFeedback("Arquivos salvos com sucesso no disquete!", "success");
+  showSuccess(message) {
+    this.showFeedback(message, "success");
 
-    this.phase3DiskGlow
-      .setStrokeStyle(4, 0x8ef28b, 0.9)
-      .setFillStyle(0x8ef28b, 0.1)
-      .setBlendMode(Phaser.BlendModes.ADD);
+    const sector = this.phase3SectorObjects[this.phase3CurrentSectorIndex];
+    this.tweens.add({
+      targets: sector.container,
+      scale: 1.22,
+      duration: 130,
+      yoyo: true,
+      repeat: 1,
+      ease: "Sine.inOut",
+    });
+  }
+
+  showFailure(message) {
+    this.showFeedback(message, "error");
+    this.cameras.main.shake(130, 0.002);
 
     this.tweens.add({
-      targets: this.phase3DiskGlow,
-      scale: 1.14,
-      alpha: 0.28,
-      duration: 340,
+      targets: this.phase3SectorHighlight,
+      scale: 1.28,
+      alpha: 0.22,
+      duration: 90,
       yoyo: true,
       repeat: 2,
       ease: "Sine.inOut",
-    });
-
-    this.createSuccessSparkles();
-    this.time.delayedCall(1400, () => this.showConclusion());
-  }
-
-  createSuccessSparkles() {
-    const positions = [
-      [684, 225],
-      [716, 196],
-      [794, 196],
-      [830, 230],
-      [823, 308],
-      [690, 319],
-    ];
-
-    positions.forEach(([x, y], index) => {
-      const sparkle = this.add
-        .rectangle(x, y, 8, 8, index % 2 === 0 ? 0x8ef28b : 0x62e7f2, 0.9)
-        .setRotation(Math.PI / 4);
-      this.addToStage(sparkle);
-
-      this.tweens.add({
-        targets: sparkle,
-        scale: 2.1,
-        alpha: 0,
-        angle: 135,
-        duration: 560,
-        delay: index * 50,
-        ease: "Sine.out",
-      });
     });
   }
 
@@ -1108,8 +920,8 @@ export default class Phase3Scene extends Phaser.Scene {
     this.phase3Stage = this.add.container(0, 0);
 
     const glow = this.add
-      .circle(480, 125, 76, 0x8ef28b, 0.07)
-      .setStrokeStyle(2, 0x8ef28b, 0.3);
+      .circle(480, 124, 80, 0xff8f70, 0.07)
+      .setStrokeStyle(2, 0xff8f70, 0.28);
     this.addToStage(glow);
     this.tweens.add({
       targets: glow,
@@ -1131,30 +943,29 @@ export default class Phase3Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    this.createCompletionFloppyDisk(480, 126);
+    this.createCompletionHardDrive(480, 126);
 
-    this.addToStage(
-      createRoundedPanel(this, 480, 301, 770, 220, {
-        stroke: 0x8ef28b,
-        strokeAlpha: 0.42,
-        radius: 18,
-      }),
-    );
+    const panel = this.add.graphics();
+    panel.fillStyle(0x0d1930, 0.97);
+    panel.fillRoundedRect(96, 194, 768, 220, 18);
+    panel.lineStyle(2, 0xff8f70, 0.42);
+    panel.strokeRoundedRect(96, 194, 768, 220, 18);
+    this.addToStage(panel);
 
     this.addToStage(
       this.add
         .text(
           480,
           280,
-          "Você aprendeu que o disquete tornou os arquivos mais portáteis,\nmas tinha pouca capacidade. Por isso, era preciso escolher\nbem o que salvar.",
+          "Você aprendeu que o HD oferece grande capacidade de armazenamento,\nmas depende de partes mecânicas, como pratos giratórios e cabeça de leitura.\nPor isso, impactos e vibrações podem causar falhas.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "19px",
+            fontSize: "18px",
             fontStyle: "700",
             color: "#dce8f5",
             align: "center",
             lineSpacing: 7,
-            wordWrap: { width: 710 },
+            wordWrap: { width: 690 },
           },
         )
         .setOrigin(0.5),
@@ -1162,7 +973,7 @@ export default class Phase3Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 370, `PONTUAÇÃO FINAL: ${finalScore}`, {
+        .text(480, 372, `PONTUAÇÃO FINAL: ${finalScore}`, {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "12px",
           color: "#ffd166",
@@ -1176,7 +987,7 @@ export default class Phase3Scene extends Phaser.Scene {
       310,
       "VOLTAR À LINHA DO TEMPO",
       () => this.returnToTimeline(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "9px" },
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
     );
     this.createButton(
       656,
@@ -1197,76 +1008,111 @@ export default class Phase3Scene extends Phaser.Scene {
     });
   }
 
-  createIntroFloppyDisk(x, y) {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x274c46, 1);
-    graphics.fillRoundedRect(x - 92, y - 72, 184, 144, 12);
-    graphics.lineStyle(3, 0x8ef28b, 0.58);
-    graphics.strokeRoundedRect(x - 92, y - 72, 184, 144, 12);
-    graphics.fillStyle(0xb8c2c7, 1);
-    graphics.fillRoundedRect(x - 42, y - 72, 84, 55, 4);
-    graphics.fillStyle(0x26343e, 1);
-    graphics.fillRect(x + 15, y - 64, 17, 39);
-    graphics.fillStyle(0xd8cfaa, 1);
-    graphics.fillRoundedRect(x - 58, y + 8, 116, 52, 6);
-    graphics.lineStyle(2, 0x786f50, 0.55);
-    graphics.lineBetween(x - 42, y + 29, x + 42, y + 29);
-    graphics.lineBetween(x - 42, y + 43, x + 27, y + 43);
-    this.addToStage(graphics);
-  }
-
-  createCompletionFloppyDisk(x, y) {
-    const graphics = this.add.graphics();
-    graphics.fillStyle(0x274c46, 1);
-    graphics.fillRoundedRect(x - 64, y - 43, 128, 86, 8);
-    graphics.lineStyle(2, 0x8ef28b, 0.65);
-    graphics.strokeRoundedRect(x - 64, y - 43, 128, 86, 8);
-    graphics.fillStyle(0xb8c2c7, 1);
-    graphics.fillRoundedRect(x - 27, y - 43, 54, 32, 3);
-    graphics.fillStyle(0xd8cfaa, 1);
-    graphics.fillRoundedRect(x - 39, y + 5, 78, 30, 4);
-    graphics.fillStyle(0x8ef28b, 1);
-    graphics.fillCircle(x, y + 20, 6);
-    this.addToStage(graphics);
-  }
-
-  getFileColor(type) {
-    const colors = {
-      TXT: 0x62e7f2,
-      PDF: 0xff8f70,
-      DOC: 0x70b7ff,
-      XLS: 0x8ef28b,
-      BMP: 0xffd166,
-      WAV: 0xc49cff,
-      AVI: 0xff8f70,
-      EXE: 0xff7b68,
-      ZIP: 0xc49cff,
-      C: 0x62e7f2,
-      GIF: 0xffd166,
-      PPT: 0xff8f70,
+  getSectorPosition(file) {
+    const radians = Phaser.Math.DegToRad(file.angle);
+    return {
+      x: PHASE3_PLATTER_CENTER.x + Math.cos(radians) * file.radius,
+      y: PHASE3_PLATTER_CENTER.y + Math.sin(radians) * file.radius,
     };
-
-    return colors[type] ?? 0x8da2bd;
   }
 
-  getFileById(fileId) {
-    return this.phase3Files.find((file) => file.id === fileId);
+  createRecoverySparkles(sectorIndex) {
+    const file = this.phase3Files[sectorIndex];
+    const position = this.getSectorPosition(file);
+    const globalX = PHASE3_DRIVE_POSITION.x + position.x;
+    const globalY = PHASE3_DRIVE_POSITION.y + position.y;
+    const offsets = [
+      [-13, -11],
+      [13, -8],
+      [-9, 13],
+      [12, 12],
+    ];
+
+    offsets.forEach(([offsetX, offsetY], index) => {
+      const sparkle = this.add
+        .rectangle(
+          globalX + offsetX,
+          globalY + offsetY,
+          6,
+          6,
+          index % 2 === 0 ? 0x8ef28b : 0x62e7f2,
+          0.9,
+        )
+        .setRotation(Math.PI / 4);
+      this.addToStage(sparkle);
+      this.tweens.add({
+        targets: sparkle,
+        scale: 2,
+        alpha: 0,
+        angle: 135,
+        duration: 430,
+        delay: index * 35,
+        ease: "Sine.out",
+      });
+    });
   }
 
-  isOverCapacity() {
-    return this.phase3UsedCapacity > PHASE3_CAPACITY_MB + 0.0001;
+  createIntroHardDrive(x, y) {
+    const hd = this.add.graphics();
+    hd.fillStyle(0x13283a, 1);
+    hd.fillRoundedRect(x - 105, y - 62, 210, 124, 16);
+    hd.lineStyle(3, 0xff8f70, 0.74);
+    hd.strokeRoundedRect(x - 105, y - 62, 210, 124, 16);
+    hd.fillStyle(0xb7c9d6, 1);
+    hd.fillCircle(x - 26, y, 48);
+    hd.lineStyle(4, 0x62e7f2, 0.28);
+    hd.strokeCircle(x - 26, y, 33);
+    hd.fillStyle(0x0b1627, 1);
+    hd.fillCircle(x - 26, y, 12);
+    hd.lineStyle(7, 0x60758a, 1);
+    hd.lineBetween(x + 46, y + 38, x + 5, y + 5);
+    hd.fillStyle(0xffd166, 1);
+    hd.fillCircle(x + 5, y + 5, 5);
+    this.addToStage(hd);
   }
 
-  formatCapacity(value) {
-    return value.toFixed(2).replace(".", ",");
+  createCompletionHardDrive(x, y) {
+    const hd = this.add.graphics();
+    hd.fillStyle(0x13283a, 1);
+    hd.fillRoundedRect(x - 58, y - 36, 116, 72, 12);
+    hd.lineStyle(3, 0x8ef28b, 0.85);
+    hd.strokeRoundedRect(x - 58, y - 36, 116, 72, 12);
+    hd.fillStyle(0xb7c9d6, 1);
+    hd.fillCircle(x - 16, y, 26);
+    hd.fillStyle(0x0b1627, 1);
+    hd.fillCircle(x - 16, y, 7);
+    hd.lineStyle(5, 0x60758a, 1);
+    hd.lineBetween(x + 28, y + 22, x + 1, y + 2);
+    hd.fillStyle(0x8ef28b, 1);
+    hd.fillCircle(x + 2, y + 2, 4);
+    this.addToStage(hd);
   }
 
   disableChallengeControls() {
-    this.phase3FileCards.forEach(({ background }) =>
-      background.disableInteractive(),
-    );
-    this.phase3ClearButton.background.disableInteractive();
-    this.phase3SaveButton.background.disableInteractive();
+    [
+      this.phase3BackButton,
+      this.phase3ForwardButton,
+      this.phase3ReadButton,
+      this.phase3StabilizeButton,
+    ].forEach((button) => {
+      if (button?.setEnabled) {
+        button.setEnabled(false);
+      } else if (button?.background) {
+        button.background.disableInteractive();
+      }
+    });
+  }
+
+  stopVibrationTweens() {
+    if (this.phase3VibrationTween) {
+      this.phase3VibrationTween.stop();
+      this.phase3VibrationTween = null;
+    }
+
+    if (this.phase3VibrationPulse) {
+      this.phase3VibrationPulse.stop();
+      this.phase3VibrationPulse = null;
+    }
   }
 
   restartPhase() {
@@ -1282,14 +1128,13 @@ export default class Phase3Scene extends Phaser.Scene {
       border: options.border ?? 0x62e7f2,
       hover: options.hover ?? 0x1c5264,
       fontSize: options.fontSize ?? "10px",
-      height: options.height ?? 56,
       addToStage: (button) => this.addToStage(button),
     });
   }
 
   createBackLink() {
     const text = this.add
-      .text(38, 29, "< LINHA DO TEMPO", {
+      .text(38, 31, "< LINHA DO TEMPO", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "14px",
         fontStyle: "800",
@@ -1309,6 +1154,7 @@ export default class Phase3Scene extends Phaser.Scene {
   }
 
   clearStage() {
+    this.stopVibrationTweens();
     this.tweens.killAll();
 
     if (this.phase3Stage) {

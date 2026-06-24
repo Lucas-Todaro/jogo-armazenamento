@@ -27,23 +27,23 @@ const PHASES = [
   },
   {
     phaseNumber: 3,
-    title: "Disquete",
-    year: "1971",
-    color: 0x8ef28b,
+    title: "HD /\nDisco rígido",
+    year: "1956",
+    color: 0xff8f70,
     sceneKey: "Phase3Scene",
   },
   {
     phaseNumber: 4,
-    title: "CD / DVD",
-    year: "1982",
-    color: 0xc49cff,
+    title: "Disquete",
+    year: "1971",
+    color: 0x8ef28b,
     sceneKey: "Phase4Scene",
   },
   {
     phaseNumber: 5,
-    title: "HD",
-    year: "POPULAR",
-    color: 0xff8f70,
+    title: "CD / DVD",
+    year: "ANOS 80/90",
+    color: 0xc49cff,
     sceneKey: "Phase5Scene",
   },
   {
@@ -56,7 +56,7 @@ const PHASES = [
   {
     phaseNumber: 7,
     title: "SSD e\nNuvem",
-    year: "FUTURO",
+    year: "ATUALIDADE",
     color: 0x8ef28b,
     sceneKey: "Phase7Scene",
   },
@@ -238,7 +238,7 @@ export default class TimelineScene extends Phaser.Scene {
       this.add
         .text(0, 17, phase.year, {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
+          fontSize: phase.year.length > 8 ? "6px" : "8px",
           color: unlocked ? "#ffd166" : "#53657c",
         })
         .setOrigin(0.5),

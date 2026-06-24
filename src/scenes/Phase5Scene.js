@@ -3,35 +3,47 @@ import {
   isPhaseUnlocked,
   savePhaseScore,
 } from "../utils/progressManager.js";
-import { createStandardButton, drawRetroBackground } from "../utils/visualHelpers.js";
+import {
+  createRoundedPanel,
+  createStandardButton,
+  drawRetroBackground,
+} from "../utils/visualHelpers.js";
 
 const PHASE5_STARTING_SCORE = 100;
-const PHASE5_TARGET_COUNT = 3;
-const PHASE5_DRIVE_POSITION = { x: 342, y: 278 };
-const PHASE5_PLATTER_CENTER = { x: -10, y: -8 };
-const PHASE5_HEAD_PIVOT = { x: 148, y: 124 };
-const PHASE5_FILE_POOL = [
-  "sistema.sys",
-  "fotos.zip",
-  "jogo.iso",
-  "trabalho.doc",
-  "musica.mp3",
-  "backup.bak",
-  "dados.db",
-  "projeto.zip",
-  "video.mp4",
-  "config.ini",
-];
+const PHASE5_READ_PENALTY = 10;
+const PHASE5_SCRATCH_PENALTY = 5;
+const PHASE5_MIN_SECTORS = 6;
+const PHASE5_MAX_SECTORS = 8;
+
 const PHASE5_SECTOR_SLOTS = [
-  { angle: -126, radius: 96, color: 0x8ef28b },
-  { angle: -82, radius: 118, color: 0x62e7f2 },
-  { angle: -38, radius: 92, color: 0xffd166 },
-  { angle: 8, radius: 116, color: 0xc49cff },
-  { angle: 52, radius: 94, color: 0x70b7ff },
-  { angle: 96, radius: 116, color: 0xff8f70 },
-  { angle: 142, radius: 92, color: 0x8ef28b },
-  { angle: 188, radius: 116, color: 0x62e7f2 },
+  { id: "north-west", x: -73, y: -87 },
+  { id: "north", x: 3, y: -111 },
+  { id: "north-east", x: 82, y: -76 },
+  { id: "east", x: 111, y: -4 },
+  { id: "south-east", x: 78, y: 77 },
+  { id: "south", x: 4, y: 109 },
+  { id: "south-west", x: -82, y: 76 },
+  { id: "west", x: -111, y: -5 },
+  { id: "inner-north-west", x: -47, y: -40 },
+  { id: "inner-north-east", x: 49, y: -39 },
+  { id: "inner-south-east", x: 48, y: 42 },
+  { id: "inner-south-west", x: -48, y: 42 },
 ];
+
+const PHASE5_SCRATCH_SLOTS = [
+  { id: "scratch-a", x: -52, y: -70, length: 64, angle: 0.42 },
+  { id: "scratch-b", x: 62, y: -18, length: 76, angle: -0.68 },
+  { id: "scratch-c", x: -34, y: 75, length: 70, angle: 0.2 },
+  { id: "scratch-d", x: 35, y: 72, length: 58, angle: -0.34 },
+  { id: "scratch-e", x: -82, y: 9, length: 60, angle: 0.78 },
+  { id: "scratch-f", x: 34, y: -84, length: 56, angle: 0.12 },
+];
+
+const PHASE5_DISC = {
+  x: 352,
+  y: 274,
+  radius: 142,
+};
 
 export default class Phase5Scene extends Phaser.Scene {
   constructor() {
@@ -53,10 +65,10 @@ export default class Phase5Scene extends Phaser.Scene {
 
   drawBackground() {
     drawRetroBackground(this, {
-      accent: 0xff8f70,
+      accent: 0xc49cff,
       bottomLeft: 0x17283a,
       bottomRight: 0x0a1522,
-      gridAlpha: 0.035,
+      gridAlpha: 0.04,
       frameAlpha: 0.12,
     });
   }
@@ -67,37 +79,38 @@ export default class Phase5Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 54, "FASE 5: HD / DISCO RÍGIDO", {
+        .text(480, 48, "FASE 5: CD / DVD", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "18px",
-          color: "#ff8f70",
+          fontSize: "20px",
+          color: "#c49cff",
         })
         .setOrigin(0.5),
     );
 
-    const panel = this.add.graphics();
-    panel.fillStyle(0x0d1930, 0.97);
-    panel.fillRoundedRect(96, 94, 768, 384, 18);
-    panel.lineStyle(2, 0xff8f70, 0.5);
-    panel.strokeRoundedRect(96, 94, 768, 384, 18);
-    this.addToStage(panel);
+    this.addToStage(
+      createRoundedPanel(this, 480, 278, 780, 374, {
+        stroke: 0xc49cff,
+        strokeAlpha: 0.46,
+        radius: 20,
+      }),
+    );
 
-    this.createIntroHardDrive(480, 162);
+    this.createIntroDisc(480, 151);
 
     this.addToStage(
       this.add
         .text(
           480,
-          304,
-          "O HD armazena dados em pratos magnéticos que giram rapidamente.\nUma cabeça de leitura se move até os setores para acessar os arquivos.",
+          298,
+          "CDs e DVDs armazenam dados em discos ópticos. Um laser lê\npequenas marcas na superfície para acessar arquivos,\nmúsicas, vídeos e programas.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "19px",
             fontStyle: "700",
             color: "#dce8f5",
             align: "center",
-            lineSpacing: 8,
-            wordWrap: { width: 690 },
+            lineSpacing: 6,
+            wordWrap: { width: 710 },
           },
         )
         .setOrigin(0.5),
@@ -107,16 +120,15 @@ export default class Phase5Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          390,
-          "Recupere os arquivos corretos movendo a cabeça de leitura,\nmas cuidado com vibrações.",
+          376,
+          "Limpe a sujeira do disco e evite os danos\npara concluir a leitura.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "17px",
+            fontSize: "18px",
             fontStyle: "900",
             color: "#ffd166",
             align: "center",
-            lineSpacing: 6,
-            wordWrap: { width: 650 },
+            lineSpacing: 5,
           },
         )
         .setOrigin(0.5),
@@ -125,394 +137,560 @@ export default class Phase5Scene extends Phaser.Scene {
     this.createButton(
       480,
       454,
-      292,
+      290,
       "COMEÇAR DESAFIO",
       () => this.startChallenge(),
-      { border: 0x8ef28b, hover: 0x246a69, fontSize: "10px" },
+      { border: 0x8ef28b, hover: 0x246a69 },
     );
     this.createBackLink();
   }
 
   startChallenge() {
     this.phase5Score = PHASE5_STARTING_SCORE;
-    this.phase5RecoveredFiles = new Set();
-    this.phase5SectorObjects = [];
-    this.phase5IsMoving = false;
-    this.phase5IsVibrating = false;
+    this.phase5CleanedDirt = new Set();
+    this.phase5DiscoveredScratches = new Set();
+    this.phase5IsReading = false;
     this.phase5IsComplete = false;
-    this.phase5ActionCount = 0;
-    this.phase5VibrationTween = null;
-    this.phase5VibrationPulse = null;
-
+    this.phase5SectorObjects = new Map();
+    this.phase5DirtObjects = [];
+    this.phase5ScratchObjects = [];
     this.setupRandomChallenge();
+
     this.clearStage();
     this.phase5Stage = this.add.container(0, 0);
 
     this.addToStage(
       this.add
-        .text(480, 31, "DISCO RÍGIDO MAGNÉTICO", {
+        .text(480, 29, "FASE 5: LEITURA ÓPTICA", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "15px",
-          color: "#ff8f70",
+          fontSize: "14px",
+          color: "#c49cff",
         })
         .setOrigin(0.5),
     );
 
     this.phase5ScoreText = this.add
-      .text(910, 31, "PONTOS: 100", {
+      .text(916, 29, "PONTOS: 100", {
         fontFamily: '"Press Start 2P", monospace',
-        fontSize: "9px",
+        fontSize: "10px",
         color: "#8ef28b",
       })
       .setOrigin(1, 0.5);
     this.addToStage(this.phase5ScoreText);
 
     this.createObjectivePanel();
-    this.createHardDriveLayout();
-    this.createStatusPanel();
-    this.createTipBox();
+    this.createDiscArea();
+    this.createDisc();
+    this.createSectors();
+    this.createScratches();
+    this.createDirt();
+    this.createLaser();
+    this.createSidePanel();
     this.createControls();
-    this.createFeedbackBox();
+    this.createFeedbackArea();
     this.createBackLink();
-
-    this.updateCurrentSectorVisual();
-    this.updateTargetPanel();
-    this.updateStabilizeButton();
+    this.updateReadiness();
 
     this.phase5Stage.setAlpha(0);
     this.tweens.add({
       targets: this.phase5Stage,
       alpha: 1,
-      duration: 260,
+      duration: 280,
       ease: "Sine.out",
     });
   }
 
   setupRandomChallenge() {
     const previousSignature = this.phase5ChallengeSignature;
-    const slotCount = PHASE5_SECTOR_SLOTS.length;
 
-    for (let attempt = 0; attempt < 100; attempt += 1) {
-      const shuffledFiles = Phaser.Utils.Array.Shuffle([
-        ...PHASE5_FILE_POOL,
-      ]);
-      const files = PHASE5_SECTOR_SLOTS.map((slot, index) => ({
+    for (let attempt = 0; attempt < 150; attempt += 1) {
+      const sectorCount = Phaser.Math.Between(
+        PHASE5_MIN_SECTORS,
+        PHASE5_MAX_SECTORS,
+      );
+      const importantCount = Phaser.Math.Between(3, 4);
+      const selectedSlots = this.shuffleItems(PHASE5_SECTOR_SLOTS).slice(
+        0,
+        sectorCount,
+      );
+      const importantIds = new Set(
+        this.shuffleItems(selectedSlots)
+          .slice(0, importantCount)
+          .map((slot) => slot.id),
+      );
+      const sectors = selectedSlots.map((slot, index) => ({
         ...slot,
-        name: shuffledFiles[index],
-        sector: index + 1,
+        number: index + 1,
+        important: importantIds.has(slot.id),
       }));
-      const targetFiles = Phaser.Utils.Array.Shuffle(
-        files.map((file) => file.name),
-      ).slice(0, PHASE5_TARGET_COUNT);
-      const signature = `${files
-        .map((file) => file.name)
-        .join("|")}::${targetFiles.join("|")}`;
+
+      const importantSectors = sectors.filter((sector) => sector.important);
+      const optionalSectors = sectors.filter((sector) => !sector.important);
+      const importantDirtCount = Phaser.Math.Between(
+        Math.max(2, importantCount - 1),
+        importantCount,
+      );
+      const optionalDirtCount = Phaser.Math.Between(
+        1,
+        Math.min(2, optionalSectors.length),
+      );
+      const dirtySectors = [
+        ...this.shuffleItems(importantSectors).slice(0, importantDirtCount),
+        ...this.shuffleItems(optionalSectors).slice(0, optionalDirtCount),
+      ];
+      const dirtSpots = dirtySectors.map((sector, index) => ({
+        id: `dirt-${sector.id}`,
+        sectorId: sector.id,
+        x: sector.x + Phaser.Math.Between(-3, 3),
+        y: sector.y + Phaser.Math.Between(-3, 3),
+        size: Phaser.Math.Between(13, 17),
+        important: sector.important,
+        index,
+      }));
+
+      const scratchCount = Phaser.Math.Between(1, 2);
+      const scratches = this.pickScratchSlots(dirtSpots, scratchCount);
+      const scanDirection = Phaser.Math.Between(0, 1) === 0 ? "left" : "right";
+      const signature = [
+        sectors
+          .map(
+            (sector) =>
+              `${sector.id}:${sector.important ? "I" : "N"}`,
+          )
+          .sort()
+          .join("|"),
+        dirtSpots
+          .map((dirt) => `${dirt.sectorId}:${dirt.size}`)
+          .sort()
+          .join("|"),
+        scratches
+          .map((scratch) => scratch.id)
+          .sort()
+          .join("|"),
+        scanDirection,
+      ].join("::");
 
       if (signature !== previousSignature) {
-        this.phase5Files = files;
-        this.phase5TargetFiles = targetFiles;
+        this.phase5Sectors = sectors;
+        this.phase5DirtSpots = dirtSpots;
+        this.phase5Scratches = scratches;
+        this.phase5ScanDirection = scanDirection;
         this.phase5ChallengeSignature = signature;
-        this.phase5TargetIndex = 0;
-        this.phase5CurrentSectorIndex = Phaser.Math.Between(
-          0,
-          slotCount - 1,
-        );
-        this.phase5NextVibrationAt = Phaser.Math.Between(3, 5);
         return;
       }
     }
 
-    this.phase5Files = PHASE5_SECTOR_SLOTS.map((slot, index) => ({
+    this.createFallbackChallenge();
+  }
+
+  pickScratchSlots(dirtSpots, scratchCount) {
+    const preferredSlots = this.shuffleItems(PHASE5_SCRATCH_SLOTS).filter(
+      (scratch) =>
+        dirtSpots.every(
+          (dirt) =>
+            Phaser.Math.Distance.Between(
+              scratch.x,
+              scratch.y,
+              dirt.x,
+              dirt.y,
+            ) > 38,
+        ),
+    );
+    const chosenSlots = preferredSlots.slice(0, scratchCount);
+
+    if (chosenSlots.length < scratchCount) {
+      const chosenIds = new Set(chosenSlots.map((scratch) => scratch.id));
+      const remainingSlots = this.shuffleItems(PHASE5_SCRATCH_SLOTS).filter(
+        (scratch) => !chosenIds.has(scratch.id),
+      );
+      chosenSlots.push(
+        ...remainingSlots.slice(0, scratchCount - chosenSlots.length),
+      );
+    }
+
+    return chosenSlots;
+  }
+
+  createFallbackChallenge() {
+    const sectors = PHASE5_SECTOR_SLOTS.slice(0, 7).map((slot, index) => ({
       ...slot,
-      name: PHASE5_FILE_POOL[(index + 1) % PHASE5_FILE_POOL.length],
-      sector: index + 1,
+      number: index + 1,
+      important: [0, 2, 4, 6].includes(index),
     }));
-    this.phase5TargetFiles = [
-      this.phase5Files[1].name,
-      this.phase5Files[4].name,
-      this.phase5Files[7].name,
-    ];
-    this.phase5ChallengeSignature = `${this.phase5Files
-      .map((file) => file.name)
-      .join("|")}::${this.phase5TargetFiles.join("|")}`;
-    this.phase5TargetIndex = 0;
-    this.phase5CurrentSectorIndex = 0;
-    this.phase5NextVibrationAt = 4;
+
+    this.phase5Sectors = sectors;
+    this.phase5DirtSpots = [sectors[0], sectors[2], sectors[4], sectors[1]].map(
+      (sector, index) => ({
+        id: `dirt-${sector.id}`,
+        sectorId: sector.id,
+        x: sector.x,
+        y: sector.y,
+        size: 15,
+        important: sector.important,
+        index,
+      }),
+    );
+    this.phase5Scratches = [PHASE5_SCRATCH_SLOTS[2]];
+    this.phase5ScanDirection = "left";
+    this.phase5ChallengeSignature = "fallback-phase-4";
+  }
+
+  shuffleItems(items) {
+    const shuffled = [...items];
+
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const swapIndex = Phaser.Math.Between(0, index);
+      [shuffled[index], shuffled[swapIndex]] = [
+        shuffled[swapIndex],
+        shuffled[index],
+      ];
+    }
+
+    return shuffled;
   }
 
   createObjectivePanel() {
-    const panel = this.add.graphics();
-    panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(142, 52, 676, 58, 12);
-    panel.lineStyle(2, 0xffd166, 0.4);
-    panel.strokeRoundedRect(142, 52, 676, 58, 12);
-    this.addToStage(panel);
+    this.addToStage(
+      createRoundedPanel(this, 480, 75, 740, 50, {
+        fill: 0x101f35,
+        stroke: 0xffd166,
+        strokeAlpha: 0.38,
+        radius: 12,
+        shadow: false,
+      }),
+    );
 
     this.addToStage(
       this.add
         .text(
           480,
-          81,
-          "Objetivo: mova a cabeça de leitura até o setor correto e recupere os arquivos.",
+          75,
+          "Objetivo: limpe os setores importantes para o laser ler os dados.",
           {
             fontFamily: '"Nunito", sans-serif',
             fontSize: "16px",
             fontStyle: "900",
-            color: "#f1f7ff",
+            color: "#ffd166",
             align: "center",
-            wordWrap: { width: 620 },
           },
         )
         .setOrigin(0.5),
     );
   }
 
-  createHardDriveLayout() {
-    this.phase5DriveContainer = this.add.container(
-      PHASE5_DRIVE_POSITION.x,
-      PHASE5_DRIVE_POSITION.y,
+  createDiscArea() {
+    this.addToStage(
+      createRoundedPanel(this, 350, 280, 610, 330, {
+        fill: 0x0b1729,
+        stroke: 0xc49cff,
+        strokeAlpha: 0.32,
+        radius: 16,
+      }),
     );
-    this.addToStage(this.phase5DriveContainer);
 
-    this.createDriveShell();
-    this.createDiskPlatter();
-    this.createReadHead();
-    this.createSectors();
-
-    this.phase5VibrationBanner = this.add.container(0, -182).setVisible(false);
-    const bannerBg = this.add.graphics();
-    bannerBg.fillStyle(0x2d1212, 0.97);
-    bannerBg.fillRoundedRect(-164, -18, 328, 36, 10);
-    bannerBg.lineStyle(2, 0xff7b68, 0.92);
-    bannerBg.strokeRoundedRect(-164, -18, 328, 36, 10);
-    const bannerText = this.add
-      .text(0, 0, "VIBRACAO DETECTADA!", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "10px",
-        color: "#ff9b78",
-      })
-      .setOrigin(0.5);
-    this.phase5VibrationBanner.add([bannerBg, bannerText]);
-    this.phase5DriveContainer.add(this.phase5VibrationBanner);
+    this.addToStage(
+      this.add
+        .text(350, 129, "SUPERFÍCIE DO DISCO", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "8px",
+          color: "#c49cff",
+        })
+        .setOrigin(0.5),
+    );
   }
 
-  createDriveShell() {
-    const drive = this.add.graphics();
-    drive.fillStyle(0x0b1324, 1);
-    drive.fillRoundedRect(-204, -166, 408, 332, 22);
-    drive.lineStyle(4, 0x31445a, 1);
-    drive.strokeRoundedRect(-204, -166, 408, 332, 22);
-    drive.fillStyle(0x13283a, 1);
-    drive.fillRoundedRect(-188, -150, 376, 300, 16);
-    drive.lineStyle(2, 0x62e7f2, 0.22);
-    drive.strokeRoundedRect(-188, -150, 376, 300, 16);
-    drive.fillStyle(0x07101f, 0.78);
-    drive.fillCircle(PHASE5_PLATTER_CENTER.x, PHASE5_PLATTER_CENTER.y, 150);
-    drive.lineStyle(2, 0xff8f70, 0.25);
-    drive.strokeCircle(PHASE5_PLATTER_CENTER.x, PHASE5_PLATTER_CENTER.y, 150);
-    drive.fillStyle(0x263a52, 1);
-    drive.fillRoundedRect(-174, 118, 348, 32, 8);
-    drive.fillStyle(0x62e7f2, 0.3);
-    drive.fillRoundedRect(-160, 129, 226, 8, 4);
-    drive.fillStyle(0x8ef28b, 0.72);
-    drive.fillCircle(130, 134, 5);
-    drive.fillStyle(0xffd166, 0.72);
-    drive.fillCircle(150, 134, 5);
-    this.phase5DriveContainer.add(drive);
-  }
-
-  createDiskPlatter() {
-    this.phase5PlatterSpin = this.add.container(
-      PHASE5_PLATTER_CENTER.x,
-      PHASE5_PLATTER_CENTER.y,
+  createDisc() {
+    this.phase5DiscContainer = this.add.container(
+      PHASE5_DISC.x,
+      PHASE5_DISC.y,
     );
-    this.phase5DriveContainer.add(this.phase5PlatterSpin);
+    this.addToStage(this.phase5DiscContainer);
 
-    const platter = this.add.graphics();
-    platter.fillStyle(0xb7c9d6, 1);
-    platter.fillCircle(0, 0, 132);
-    platter.lineStyle(5, 0xf1f7ff, 0.34);
-    platter.strokeCircle(0, 0, 132);
+    const disc = this.add.graphics();
+    disc.fillStyle(0x030713, 0.42);
+    disc.fillCircle(7, 9, PHASE5_DISC.radius + 2);
+    disc.fillStyle(0xbccbd8, 1);
+    disc.fillCircle(0, 0, PHASE5_DISC.radius);
 
-    [116, 92, 68, 44].forEach((radius, index) => {
-      const colors = [0x62e7f2, 0xffd166, 0xc49cff, 0x8ef28b];
-      platter.lineStyle(4, colors[index], 0.2 + index * 0.02);
-      platter.strokeCircle(0, 0, radius);
+    const rings = [
+      { radius: 130, color: 0x62e7f2, alpha: 0.34, width: 5 },
+      { radius: 111, color: 0xc49cff, alpha: 0.32, width: 8 },
+      { radius: 88, color: 0xffd166, alpha: 0.22, width: 7 },
+      { radius: 65, color: 0x8ef28b, alpha: 0.2, width: 6 },
+    ];
+    rings.forEach(({ radius, color, alpha, width }) => {
+      disc.lineStyle(width, color, alpha);
+      disc.strokeCircle(0, 0, radius);
     });
 
-    platter.fillStyle(0xffffff, 0.18);
-    platter.beginPath();
-    platter.moveTo(-98, -72);
-    platter.lineTo(-20, -16);
-    platter.lineTo(-48, 22);
-    platter.lineTo(-116, -38);
-    platter.closePath();
-    platter.fillPath();
-    platter.fillStyle(0x62e7f2, 0.12);
-    platter.beginPath();
-    platter.moveTo(88, -86);
-    platter.lineTo(22, -16);
-    platter.lineTo(55, 24);
-    platter.lineTo(120, -30);
-    platter.closePath();
-    platter.fillPath();
-    platter.fillStyle(0x0b1627, 1);
-    platter.fillCircle(0, 0, 24);
-    platter.lineStyle(5, 0x8799a8, 0.85);
-    platter.strokeCircle(0, 0, 24);
+    disc.lineStyle(3, 0xf1f7ff, 0.48);
+    disc.strokeCircle(0, 0, PHASE5_DISC.radius);
+    disc.fillStyle(0x0b1627, 1);
+    disc.fillCircle(0, 0, 29);
+    disc.lineStyle(6, 0x8799a8, 0.85);
+    disc.strokeCircle(0, 0, 29);
 
-    this.phase5PlatterSpin.add(platter);
-    this.tweens.add({
-      targets: this.phase5PlatterSpin,
-      angle: 360,
-      duration: 20000,
-      repeat: -1,
-      ease: "Linear",
-    });
+    disc.fillStyle(0xffffff, 0.22);
+    disc.beginPath();
+    disc.moveTo(-108, -89);
+    disc.lineTo(-20, -20);
+    disc.lineTo(-53, 18);
+    disc.lineTo(-128, -48);
+    disc.closePath();
+    disc.fillPath();
+
+    disc.fillStyle(0x62e7f2, 0.12);
+    disc.beginPath();
+    disc.moveTo(92, -96);
+    disc.lineTo(30, -26);
+    disc.lineTo(64, 12);
+    disc.lineTo(127, -51);
+    disc.closePath();
+    disc.fillPath();
+    this.phase5DiscContainer.add(disc);
+
+    this.phase5DiscGlow = this.add
+      .circle(
+        PHASE5_DISC.x,
+        PHASE5_DISC.y,
+        PHASE5_DISC.radius + 10,
+        0xc49cff,
+        0,
+      )
+      .setStrokeStyle(4, 0xc49cff, 0);
+    this.addToStage(this.phase5DiscGlow);
   }
 
   createSectors() {
-    this.phase5SectorHighlight = this.add
-      .circle(0, 0, 29, 0xffd166, 0.1)
-      .setStrokeStyle(4, 0xffd166, 0.95)
-      .setBlendMode(Phaser.BlendModes.ADD);
-    this.phase5DriveContainer.add(this.phase5SectorHighlight);
-
-    this.phase5Files.forEach((file, index) => {
-      const position = this.getSectorPosition(file);
-      const sectorContainer = this.add
-        .container(position.x, position.y)
-        .setDepth(2);
-      const centerOffsetX = position.x - PHASE5_PLATTER_CENTER.x;
-      const centerOffsetY = position.y - PHASE5_PLATTER_CENTER.y;
-      const distance = Math.hypot(centerOffsetX, centerOffsetY) || 1;
-      const labelX = (centerOffsetX / distance) * 30;
-      const labelY = (centerOffsetY / distance) * 30;
-      const marker = this.add
-        .circle(0, 0, 17, 0x07101f, 1)
-        .setStrokeStyle(3, file.color, 0.9);
-      const dot = this.add.circle(0, 0, 5, file.color, 1);
-      const tag = this.add.rectangle(
-        labelX,
-        labelY,
-        92,
-        20,
-        0xf1f7ff,
-        0.96,
+    this.phase5Sectors.forEach((sector) => {
+      const sectorContainer = this.add.container(sector.x, sector.y);
+      const halo = this.add.circle(
+        0,
+        0,
+        sector.important ? 22 : 16,
+        sector.important ? 0xffd166 : 0x62e7f2,
+        sector.important ? 0.14 : 0.08,
       );
-      const label = this.add
-        .text(labelX, labelY, file.name, {
-          fontFamily: '"Nunito", sans-serif',
-          fontSize: "10px",
-          fontStyle: "900",
-          color: "#07101f",
-          align: "center",
+      const marker = this.add
+        .circle(
+          0,
+          0,
+          sector.important ? 13 : 10,
+          sector.important ? 0x493d1c : 0x24495d,
+          0.96,
+        )
+        .setStrokeStyle(
+          sector.important ? 3 : 2,
+          sector.important ? 0xffd166 : 0x62e7f2,
+          sector.important ? 0.95 : 0.7,
+        );
+      const dataPoint = this.add.circle(
+        0,
+        0,
+        4,
+        sector.important ? 0xffd166 : 0x62e7f2,
+        1,
+      );
+      const number = this.add
+        .text(0, sector.important ? -31 : -25, String(sector.number), {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "5px",
+          color: sector.important ? "#493d1c" : "#24495d",
+          backgroundColor: sector.important ? "#ffd166" : "#8ed8e8",
+          padding: { left: 3, right: 3, top: 2, bottom: 2 },
         })
         .setOrigin(0.5);
-      const recovered = this.add
-        .text(0, -1, "OK", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
-          color: "#8ef28b",
-        })
-        .setOrigin(0.5)
-        .setVisible(false);
 
-      sectorContainer.add([marker, dot, tag, label, recovered]);
-      this.phase5DriveContainer.add(sectorContainer);
-      this.phase5SectorObjects.push({
+      sectorContainer.add([halo, marker, dataPoint, number]);
+      this.phase5DiscContainer.add(sectorContainer);
+      this.phase5SectorObjects.set(sector.id, {
         container: sectorContainer,
+        halo,
         marker,
-        dot,
-        tag,
-        label,
-        recovered,
-        file,
-        index,
+        dataPoint,
+        number,
+        sector,
       });
     });
   }
 
-  createReadHead() {
-    this.phase5ArmGraphics = this.add.graphics();
-    this.phase5DriveContainer.add(this.phase5ArmGraphics);
+  createScratches() {
+    this.phase5Scratches.forEach((scratch, index) => {
+      const scratchContainer = this.add.container(scratch.x, scratch.y);
+      const shadow = this.add
+        .rectangle(2, 2, scratch.length, 4, 0x26333d, 0.72)
+        .setRotation(scratch.angle);
+      const scratchLine = this.add
+        .rectangle(0, 0, scratch.length, 3, 0xe7edf2, 0.94)
+        .setRotation(scratch.angle);
+      const highlight = this.add
+        .rectangle(
+          -scratch.length * 0.08,
+          -2,
+          scratch.length * 0.7,
+          1,
+          0xffffff,
+          0.92,
+        )
+        .setRotation(scratch.angle);
+      const endMark = this.add
+        .rectangle(
+          scratch.length * 0.28,
+          1,
+          scratch.length * 0.22,
+          2,
+          0x8394a2,
+          0.8,
+        )
+        .setRotation(scratch.angle + 0.08);
+      const hitArea = this.add
+        .rectangle(0, 0, scratch.length + 28, 26, 0xffffff, 0.001)
+        .setRotation(scratch.angle)
+        .setInteractive({ useHandCursor: true });
 
-    this.phase5HeadPivot = this.add
-      .circle(PHASE5_HEAD_PIVOT.x, PHASE5_HEAD_PIVOT.y, 18, 0x263a52, 1)
-      .setStrokeStyle(4, 0x62e7f2, 0.58);
-    this.phase5DriveContainer.add(this.phase5HeadPivot);
+      scratchContainer.add([
+        shadow,
+        scratchLine,
+        highlight,
+        endMark,
+        hitArea,
+      ]);
+      this.phase5DiscContainer.add(scratchContainer);
+      hitArea.on("pointerdown", () => this.handleScratchClick(index));
 
-    this.phase5HeadTip = this.add
-      .rectangle(0, 0, 58, 18, 0x60758a, 1)
-      .setStrokeStyle(2, 0xf1f7ff, 0.42);
-    this.phase5DriveContainer.add(this.phase5HeadTip);
-
-    this.updateReadHeadPosition(false);
+      this.phase5ScratchObjects.push({
+        container: scratchContainer,
+        scratchLine,
+        highlight,
+        hitArea,
+      });
+    });
   }
 
-  createStatusPanel() {
-    const panel = this.add.graphics();
-    panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(568, 124, 334, 140, 14);
-    panel.lineStyle(2, 0xff8f70, 0.4);
-    panel.strokeRoundedRect(568, 124, 334, 140, 14);
-    this.addToStage(panel);
+  createDirt() {
+    this.phase5DirtSpots.forEach((spot, index) => {
+      const dirtContainer = this.add.container(spot.x, spot.y);
+      const stainEdge = this.add
+        .circle(0, 0, spot.size + 5, 0x3c2919, 0.25)
+        .setStrokeStyle(2, 0x382618, 0.7);
+      const stain = this.add.circle(0, 0, spot.size, 0x76512d, 0.94);
+      const blobOne = this.add.circle(
+        -spot.size * 0.55,
+        3,
+        spot.size * 0.55,
+        0x654321,
+        0.88,
+      );
+      const blobTwo = this.add.circle(
+        spot.size * 0.52,
+        -3,
+        spot.size * 0.46,
+        0x8a6034,
+        0.9,
+      );
+      const speckOne = this.add.circle(-6, -6, 3, 0x332116, 0.9);
+      const speckTwo = this.add.circle(7, 5, 2.5, 0x422a17, 0.9);
+      const hitArea = this.add
+        .circle(0, 0, spot.size + 16, 0xffffff, 0.001)
+        .setInteractive({ useHandCursor: true });
+
+      dirtContainer.add([
+        stainEdge,
+        stain,
+        blobOne,
+        blobTwo,
+        speckOne,
+        speckTwo,
+        hitArea,
+      ]);
+      this.phase5DiscContainer.add(dirtContainer);
+
+      hitArea.on("pointerover", () => {
+        if (!this.phase5IsComplete && !this.phase5IsReading) {
+          this.tweens.add({
+            targets: dirtContainer,
+            scale: 1.13,
+            duration: 100,
+            ease: "Sine.out",
+          });
+        }
+      });
+      hitArea.on("pointerout", () => {
+        this.tweens.add({
+          targets: dirtContainer,
+          scale: 1,
+          duration: 100,
+          ease: "Sine.out",
+        });
+      });
+      hitArea.on("pointerdown", () => this.cleanDirt(index));
+
+      this.phase5DirtObjects.push({
+        container: dirtContainer,
+        hitArea,
+        spot,
+      });
+    });
+  }
+
+  createLaser() {
+    const reader = this.add.graphics();
+    reader.fillStyle(0x15283b, 1);
+    reader.fillRoundedRect(150, 407, 404, 40, 10);
+    reader.lineStyle(2, 0x62e7f2, 0.55);
+    reader.strokeRoundedRect(150, 407, 404, 40, 10);
+    reader.fillStyle(0x60758a, 1);
+    reader.fillRoundedRect(306, 398, 92, 22, 5);
+    reader.fillStyle(0x09121f, 1);
+    reader.fillCircle(352, 409, 8);
+    reader.fillStyle(0x62e7f2, 1);
+    reader.fillCircle(352, 409, 3);
+    this.addToStage(reader);
+
+    this.phase5LaserGlow = this.add
+      .rectangle(352, 405, 22, 262, 0x62e7f2, 0)
+      .setOrigin(0.5, 1)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.phase5LaserBeam = this.add
+      .rectangle(352, 405, 5, 262, 0x62e7f2, 0)
+      .setOrigin(0.5, 1)
+      .setBlendMode(Phaser.BlendModes.ADD);
+    this.phase5LaserHead = this.add.circle(352, 409, 6, 0x62e7f2, 0.95);
+    this.addToStage([
+      this.phase5LaserGlow,
+      this.phase5LaserBeam,
+      this.phase5LaserHead,
+    ]);
 
     this.addToStage(
       this.add
-        .text(735, 146, "ARQUIVO PROCURADO", {
-          fontFamily: '"Press Start 2P", monospace',
-          fontSize: "8px",
-          color: "#ffd166",
-        })
+        .text(
+          352,
+          435,
+          `UNIDADE LASER  ${this.phase5ScanDirection === "left" ? ">" : "<"}`,
+          {
+            fontFamily: '"Press Start 2P", monospace',
+            fontSize: "7px",
+            color: "#62e7f2",
+          },
+        )
         .setOrigin(0.5),
     );
-
-    this.phase5TargetText = this.add
-      .text(735, 181, "", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "24px",
-        fontStyle: "900",
-        color: "#f1f7ff",
-        align: "center",
-        wordWrap: { width: 292 },
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase5TargetText);
-
-    this.phase5CurrentSectorText = this.add
-      .text(735, 222, "", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "13px",
-        fontStyle: "800",
-        color: "#c7d7e8",
-        align: "center",
-        wordWrap: { width: 288 },
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase5CurrentSectorText);
-
-    this.phase5RecoveredText = this.add
-      .text(735, 246, "", {
-        fontFamily: '"Press Start 2P", monospace',
-        fontSize: "8px",
-        color: "#8ef28b",
-      })
-      .setOrigin(0.5);
-    this.addToStage(this.phase5RecoveredText);
   }
 
-  createTipBox() {
-    const panel = this.add.graphics();
-    panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(592, 286, 286, 84, 12);
-    panel.lineStyle(2, 0x62e7f2, 0.34);
-    panel.strokeRoundedRect(592, 286, 286, 84, 12);
-    this.addToStage(panel);
+  createSidePanel() {
+    this.addToStage(
+      createRoundedPanel(this, 785, 280, 270, 330, {
+        fill: 0x0b1729,
+        stroke: 0x62e7f2,
+        strokeAlpha: 0.32,
+        radius: 16,
+      }),
+    );
 
     this.addToStage(
       this.add
-        .text(735, 308, "DICA", {
+        .text(785, 130, "STATUS DA LEITURA", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "8px",
           color: "#62e7f2",
@@ -520,228 +698,371 @@ export default class Phase5Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
+    this.phase5ReadinessText = this.add
+      .text(785, 162, "", {
+        fontFamily: '"Press Start 2P", monospace',
+        fontSize: "8px",
+        color: "#ffd166",
+        align: "center",
+        lineSpacing: 4,
+      })
+      .setOrigin(0.5);
+    this.addToStage(this.phase5ReadinessText);
+
+    this.addToStage(
+      this.add
+        .text(785, 206, "LEGENDA", {
+          fontFamily: '"Press Start 2P", monospace',
+          fontSize: "7px",
+          color: "#c49cff",
+        })
+        .setOrigin(0.5),
+    );
+
+    this.createLegendRow(785, 232, "important", "Anel amarelo: setor importante");
+    this.createLegendRow(785, 261, "dirt", "Mancha marrom: clique para limpar");
+    this.createLegendRow(785, 290, "scratch", "Risco claro: dano permanente");
+
+    this.addToStage(
+      createRoundedPanel(this, 785, 342, 230, 62, {
+        fill: 0x101f35,
+        stroke: 0xffd166,
+        strokeAlpha: 0.3,
+        radius: 12,
+        shadow: false,
+      }),
+    );
+
     this.addToStage(
       this.add
         .text(
-          735,
-          340,
-          "O HD usa uma cabeça mecânica para acessar setores nos pratos magnéticos.",
+          785,
+          342,
+          "Dica: o laser precisa de uma\nsuperfície limpa para ler os dados.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "13px",
+            fontSize: "12px",
             fontStyle: "800",
-            color: "#c7d7e8",
+            color: "#dce8f5",
             align: "center",
-            lineSpacing: 3,
-            wordWrap: { width: 246 },
+            lineSpacing: 2,
           },
         )
         .setOrigin(0.5),
     );
   }
 
+  createLegendRow(x, y, type, label) {
+    if (type === "important") {
+      this.addToStage(
+        this.add
+          .circle(x - 103, y, 8, 0x493d1c, 1)
+          .setStrokeStyle(3, 0xffd166, 1),
+      );
+    } else if (type === "dirt") {
+      this.addToStage(
+        this.add
+          .circle(x - 103, y, 9, 0x76512d, 1)
+          .setStrokeStyle(2, 0x382618, 0.8),
+      );
+    } else {
+      this.addToStage(
+        this.add.rectangle(x - 103, y, 19, 3, 0xe7edf2, 1).setRotation(-0.4),
+      );
+    }
+
+    this.addToStage(
+      this.add
+        .text(x - 85, y, label, {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "11px",
+          fontStyle: "800",
+          color: "#c7d7e8",
+        })
+        .setOrigin(0, 0.5),
+    );
+  }
+
   createControls() {
-    this.phase5BackButton = this.createButton(
-      190,
-      454,
-      170,
-      "SETOR ANTERIOR",
-      () => this.moveToPreviousSector(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
-    );
-
-    this.phase5ForwardButton = this.createButton(
-      382,
-      454,
-      170,
-      "PRÓXIMO SETOR",
-      () => this.moveToNextSector(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
-    );
-
     this.phase5ReadButton = this.createButton(
-      574,
-      454,
-      170,
-      "LER SETOR",
-      () => this.readCurrentSector(),
-      { border: 0x8ef28b, hover: 0x246a69, fontSize: "9px" },
-    );
-
-    this.phase5StabilizeButton = this.createButton(
-      782,
-      454,
-      214,
-      "ESTABILIZAR HD",
-      () => this.stabilizeHardDrive(),
-      { border: 0xffd166, hover: 0x5c4b22, fontSize: "8px" },
+      785,
+      416,
+      230,
+      "LER DISCO",
+      () => this.readDisc(),
+      {
+        border: 0x8ef28b,
+        hover: 0x246a69,
+        fontSize: "10px",
+        height: 50,
+      },
     );
   }
 
-  createFeedbackBox() {
-    const panel = this.add.graphics();
-    panel.fillStyle(0x091424, 0.98);
-    panel.fillRoundedRect(90, 492, 780, 34, 10);
-    panel.lineStyle(2, 0x62e7f2, 0.25);
-    panel.strokeRoundedRect(90, 492, 780, 34, 10);
-    this.addToStage(panel);
+  createFeedbackArea() {
+    this.addToStage(
+      createRoundedPanel(this, 480, 503, 850, 36, {
+        fill: 0x091424,
+        stroke: 0x62e7f2,
+        strokeAlpha: 0.24,
+        radius: 10,
+        shadow: false,
+        highlight: false,
+      }),
+    );
 
-    this.phase5FeedbackText = this.add
-      .text(480, 509, "Use os botões para mover a cabeça até o arquivo procurado.", {
-        fontFamily: '"Nunito", sans-serif',
-        fontSize: "14px",
-        fontStyle: "900",
-        color: "#8da2bd",
-        align: "center",
-        wordWrap: { width: 720 },
-      })
+    this.phase5MessageText = this.add
+      .text(
+        480,
+        503,
+        "Clique nas manchas sobre os setores importantes.",
+        {
+          fontFamily: '"Nunito", sans-serif',
+          fontSize: "14px",
+          fontStyle: "800",
+          color: "#8da2bd",
+          align: "center",
+          wordWrap: { width: 800 },
+        },
+      )
       .setOrigin(0.5);
-    this.addToStage(this.phase5FeedbackText);
+    this.addToStage(this.phase5MessageText);
   }
 
-  moveToPreviousSector() {
-    this.moveReadHead(-1);
-  }
-
-  moveToNextSector() {
-    this.moveReadHead(1);
-  }
-
-  moveReadHead(direction) {
-    if (this.phase5IsComplete || this.phase5IsMoving) {
+  cleanDirt(index) {
+    if (
+      this.phase5IsReading ||
+      this.phase5IsComplete ||
+      this.phase5CleanedDirt.has(index)
+    ) {
       return;
     }
 
-    if (this.phase5IsVibrating) {
-      this.showFeedback("Vibração detectada! Estabilize o HD antes de continuar.", "warning");
-      this.cameras.main.shake(120, 0.002);
-      return;
-    }
-
-    this.phase5CurrentSectorIndex = Phaser.Math.Wrap(
-      this.phase5CurrentSectorIndex + direction,
-      0,
-      this.phase5Files.length,
-    );
-    this.phase5IsMoving = true;
-    this.updateScore(-1);
-    this.countActionAndMaybeVibrate();
-    this.updateCurrentSectorVisual();
-    this.showFeedback("Cabeça movida. Confira o setor antes de ler.", "neutral");
-    this.updateReadHeadPosition(true, () => {
-      this.phase5IsMoving = false;
-    });
-  }
-
-  readCurrentSector() {
-    if (this.phase5IsComplete) {
-      return;
-    }
-
-    if (this.phase5IsMoving) {
-      this.showFeedback("Aguarde a cabeça chegar ao setor.", "warning");
-      return;
-    }
-
-    if (this.phase5IsVibrating) {
-      this.updateScore(-10);
-      this.showFailure("A leitura falhou por causa da vibração.");
-      return;
-    }
-
-    const currentFile = this.phase5Files[this.phase5CurrentSectorIndex].name;
-    const targetFile = this.phase5TargetFiles[this.phase5TargetIndex];
-
-    if (currentFile !== targetFile) {
-      this.updateScore(-10);
-      this.countActionAndMaybeVibrate();
-      this.showFailure("Esse setor não contém o arquivo procurado.");
-      return;
-    }
-
-    this.phase5RecoveredFiles.add(currentFile);
-    this.phase5SectorObjects[this.phase5CurrentSectorIndex].recovered.setVisible(true);
-    this.showSuccess("Arquivo recuperado com sucesso!");
-    this.createRecoverySparkles(this.phase5CurrentSectorIndex);
-    this.phase5TargetIndex += 1;
-
-    if (this.phase5TargetIndex >= this.phase5TargetFiles.length) {
-      this.phase5IsComplete = true;
-      this.disableChallengeControls();
-      this.showFeedback("Todos os arquivos importantes foram recuperados!", "success");
-      this.time.delayedCall(1300, () => this.showConclusion());
-      return;
-    }
-
-    this.countActionAndMaybeVibrate();
-    this.updateTargetPanel();
-  }
-
-  countActionAndMaybeVibrate() {
-    if (this.phase5IsComplete || this.phase5IsVibrating) {
-      return;
-    }
-
-    this.phase5ActionCount += 1;
-    if (this.phase5ActionCount >= this.phase5NextVibrationAt) {
-      this.triggerVibration();
-    }
-  }
-
-  triggerVibration() {
-    if (this.phase5IsComplete || this.phase5IsVibrating) {
-      return;
-    }
-
-    this.phase5IsVibrating = true;
-    this.phase5VibrationBanner.setVisible(true);
-    this.updateStabilizeButton();
-    this.showFeedback("Vibração detectada! Estabilize o HD antes de continuar.", "warning");
-
-    this.phase5VibrationTween = this.tweens.add({
-      targets: this.phase5DriveContainer,
-      x: PHASE5_DRIVE_POSITION.x + 4,
-      y: PHASE5_DRIVE_POSITION.y - 2,
-      duration: 55,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.inOut",
-    });
-
-    this.phase5VibrationPulse = this.tweens.add({
-      targets: this.phase5VibrationBanner,
-      scale: 1.06,
-      duration: 170,
-      yoyo: true,
-      repeat: -1,
-      ease: "Sine.inOut",
-    });
-  }
-
-  stabilizeHardDrive() {
-    if (this.phase5IsComplete || !this.phase5IsVibrating) {
-      return;
-    }
-
-    this.phase5IsVibrating = false;
-    this.stopVibrationTweens();
-    this.phase5DriveContainer.setPosition(
-      PHASE5_DRIVE_POSITION.x,
-      PHASE5_DRIVE_POSITION.y,
-    );
-    this.phase5VibrationBanner.setVisible(false).setScale(1);
-    this.phase5ActionCount = 0;
-    this.phase5NextVibrationAt = Phaser.Math.Between(3, 6);
-    this.updateStabilizeButton();
-    this.showFeedback("HD estabilizado. A leitura pode continuar.", "success");
+    this.phase5CleanedDirt.add(index);
+    const dirt = this.phase5DirtObjects[index];
+    dirt.hitArea.disableInteractive();
 
     this.tweens.add({
-      targets: this.phase5DriveContainer,
-      scale: 1.025,
-      duration: 130,
-      yoyo: true,
-      ease: "Sine.inOut",
+      targets: dirt.container,
+      scale: 1.65,
+      alpha: 0,
+      angle: 35,
+      duration: 280,
+      ease: "Sine.out",
+      onComplete: () => dirt.container.setVisible(false),
     });
+
+    this.updateSectorVisual(dirt.spot.sectorId);
+    this.updateReadiness();
+    this.showFeedback(
+      dirt.spot.important
+        ? "Sujeira removida do setor importante."
+        : "Sujeira removida. Este setor era opcional.",
+      "success",
+    );
+    this.createCleaningSparkles(
+      PHASE5_DISC.x + dirt.spot.x,
+      PHASE5_DISC.y + dirt.spot.y,
+    );
+  }
+
+  updateSectorVisual(sectorId) {
+    const sectorObject = this.phase5SectorObjects.get(sectorId);
+
+    if (!sectorObject?.sector.important) {
+      return;
+    }
+
+    const isClean = this.isImportantSectorClean(sectorId);
+    sectorObject.halo.setFillStyle(isClean ? 0x8ef28b : 0xffd166, 0.16);
+    sectorObject.marker
+      .setFillStyle(isClean ? 0x173d35 : 0x493d1c, 0.96)
+      .setStrokeStyle(3, isClean ? 0x8ef28b : 0xffd166, 0.95);
+    sectorObject.dataPoint.setFillStyle(isClean ? 0x8ef28b : 0xffd166, 1);
+    sectorObject.number
+      .setBackgroundColor(isClean ? "#8ef28b" : "#ffd166")
+      .setColor(isClean ? "#173d35" : "#493d1c");
+  }
+
+  updateReadiness() {
+    const importantSectors = this.phase5Sectors.filter(
+      (sector) => sector.important,
+    );
+    const cleanCount = importantSectors.filter((sector) =>
+      this.isImportantSectorClean(sector.id),
+    ).length;
+    const allClean = cleanCount === importantSectors.length;
+
+    importantSectors.forEach((sector) => this.updateSectorVisual(sector.id));
+    this.phase5ReadinessText
+      .setText(
+        `SETORES IMPORTANTES\nLIMPOS: ${cleanCount} / ${importantSectors.length}`,
+      )
+      .setColor(allClean ? "#8ef28b" : "#ffd166");
+  }
+
+  isImportantSectorClean(sectorId) {
+    const dirtIndex = this.phase5DirtSpots.findIndex(
+      (dirt) => dirt.sectorId === sectorId,
+    );
+
+    return dirtIndex === -1 || this.phase5CleanedDirt.has(dirtIndex);
+  }
+
+  createCleaningSparkles(x, y) {
+    const offsets = [
+      [-12, -10],
+      [13, -7],
+      [-8, 13],
+      [11, 11],
+    ];
+
+    offsets.forEach(([offsetX, offsetY], index) => {
+      const sparkle = this.add
+        .rectangle(
+          x + offsetX,
+          y + offsetY,
+          5,
+          5,
+          index % 2 === 0 ? 0x62e7f2 : 0x8ef28b,
+          0.9,
+        )
+        .setRotation(Math.PI / 4);
+      this.addToStage(sparkle);
+      this.tweens.add({
+        targets: sparkle,
+        scale: 1.9,
+        alpha: 0,
+        duration: 350,
+        delay: index * 35,
+      });
+    });
+  }
+
+  handleScratchClick(index) {
+    if (this.phase5IsReading || this.phase5IsComplete) {
+      return;
+    }
+
+    const wasAlreadyDiscovered =
+      this.phase5DiscoveredScratches.has(index);
+
+    if (wasAlreadyDiscovered) {
+      this.updateScore(-PHASE5_SCRATCH_PENALTY);
+    } else {
+      this.phase5DiscoveredScratches.add(index);
+    }
+
+    const scratch = this.phase5ScratchObjects[index];
+    scratch.scratchLine.setFillStyle(0xff7b68, 1);
+    scratch.highlight.setFillStyle(0xffc0b3, 1);
+
+    this.tweens.add({
+      targets: scratch.container,
+      scale: 1.18,
+      duration: 90,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.inOut",
+      onComplete: () => {
+        scratch.scratchLine.setFillStyle(0xe7edf2, 0.94);
+        scratch.highlight.setFillStyle(0xffffff, 0.92);
+      },
+    });
+
+    this.showFeedback(
+      wasAlreadyDiscovered
+        ? "O risco é permanente. Evite insistir: -5 pontos."
+        : "Arranhões podem prejudicar a leitura e não desaparecem.",
+      wasAlreadyDiscovered ? "error" : "warning",
+    );
+  }
+
+  readDisc() {
+    if (this.phase5IsReading || this.phase5IsComplete) {
+      return;
+    }
+
+    this.phase5IsReading = true;
+    const remainingImportantDirt = this.phase5DirtSpots.filter(
+      (dirt, index) =>
+        dirt.important && !this.phase5CleanedDirt.has(index),
+    );
+    const isSuccessful = remainingImportantDirt.length === 0;
+
+    this.animateLaserScan(isSuccessful, () => {
+      this.phase5IsReading = false;
+
+      if (isSuccessful) {
+        this.showSuccess();
+      } else {
+        this.showFailure(remainingImportantDirt);
+      }
+    });
+  }
+
+  animateLaserScan(isSuccessful, onComplete) {
+    const color = isSuccessful ? 0x8ef28b : 0xff7b68;
+    const startX = this.phase5ScanDirection === "left" ? 220 : 484;
+    const endX = this.phase5ScanDirection === "left" ? 484 : 220;
+
+    this.phase5LaserBeam
+      .setFillStyle(color, 0.96)
+      .setAlpha(0.96)
+      .setX(startX);
+    this.phase5LaserGlow
+      .setFillStyle(color, 0.22)
+      .setAlpha(0.72)
+      .setX(startX);
+    this.phase5LaserHead.setFillStyle(color, 1).setX(startX);
+
+    this.tweens.add({
+      targets: [
+        this.phase5LaserBeam,
+        this.phase5LaserGlow,
+        this.phase5LaserHead,
+      ],
+      x: endX,
+      duration: 900,
+      ease: "Sine.inOut",
+      onComplete: () => {
+        this.phase5LaserBeam.setAlpha(0);
+        this.phase5LaserGlow.setAlpha(0);
+        this.phase5LaserHead.setFillStyle(0x62e7f2, 0.95).setX(352);
+        onComplete();
+      },
+    });
+  }
+
+  showFailure(remainingImportantDirt) {
+    this.updateScore(-PHASE5_READ_PENALTY);
+    this.showFeedback(
+      "O laser encontrou sujeira. Limpe os setores importantes.",
+      "error",
+    );
+
+    remainingImportantDirt.forEach((dirt) => {
+      const dirtObject = this.phase5DirtObjects[dirt.index];
+      this.tweens.add({
+        targets: dirtObject.container,
+        scale: 1.22,
+        duration: 90,
+        yoyo: true,
+        repeat: 2,
+        ease: "Sine.inOut",
+      });
+    });
+
+    this.tweens.add({
+      targets: this.phase5DiscContainer,
+      x: PHASE5_DISC.x + 5,
+      duration: 55,
+      yoyo: true,
+      repeat: 2,
+      ease: "Sine.inOut",
+      onComplete: () => this.phase5DiscContainer.setX(PHASE5_DISC.x),
+    });
+    this.cameras.main.shake(110, 0.0015);
   }
 
   updateScore(change) {
@@ -761,153 +1082,74 @@ export default class Phase5Scene extends Phaser.Scene {
     });
   }
 
-  updateTargetPanel() {
-    const targetFile = this.phase5TargetFiles[this.phase5TargetIndex];
-    this.phase5TargetText.setText(targetFile);
-    this.phase5RecoveredText.setText(
-      `RECUPERADOS: ${this.phase5RecoveredFiles.size} / ${this.phase5TargetFiles.length}`,
-    );
-  }
-
-  updateCurrentSectorVisual() {
-    const currentFile = this.phase5Files[this.phase5CurrentSectorIndex];
-    const position = this.getSectorPosition(currentFile);
-
-    this.phase5SectorHighlight.setPosition(position.x, position.y);
-    this.phase5CurrentSectorText.setText(
-      `Setor atual: ${currentFile.sector} - ${currentFile.name}`,
-    );
-    this.updateTargetPanel();
-
-    this.phase5SectorObjects.forEach(({ marker, dot, tag, label, file }, index) => {
-      const isCurrent = index === this.phase5CurrentSectorIndex;
-      const isRecovered = this.phase5RecoveredFiles.has(file.name);
-      marker.setFillStyle(isCurrent ? 0x183749 : 0x07101f, 1);
-      marker.setStrokeStyle(isCurrent ? 4 : 3, file.color, isCurrent ? 1 : 0.76);
-      dot.setAlpha(isRecovered ? 0.35 : 1);
-      tag.setFillStyle(isCurrent ? 0xfff2c2 : 0xf1f7ff, 0.95);
-      label.setColor(isRecovered ? "#35714a" : "#07101f");
-      label.setText(isRecovered ? `${file.name}` : file.name);
-    });
-  }
-
-  updateReadHeadPosition(animate = true, onComplete = null) {
-    const currentFile = this.phase5Files[this.phase5CurrentSectorIndex];
-    const position = this.getSectorPosition(currentFile);
-
-    const drawArm = () => {
-      const angle = Phaser.Math.Angle.Between(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-      const distance = Phaser.Math.Distance.Between(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-
-      this.phase5ArmGraphics.clear();
-      this.phase5ArmGraphics.lineStyle(13, 0x60758a, 1);
-      this.phase5ArmGraphics.lineBetween(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-      this.phase5ArmGraphics.lineStyle(3, 0xf1f7ff, 0.32);
-      this.phase5ArmGraphics.lineBetween(
-        PHASE5_HEAD_PIVOT.x,
-        PHASE5_HEAD_PIVOT.y,
-        this.phase5HeadTip.x,
-        this.phase5HeadTip.y,
-      );
-      this.phase5HeadTip.setRotation(angle);
-      this.phase5HeadTip.setDisplaySize(Math.min(60, distance * 0.32), 18);
-    };
-
-    if (!animate) {
-      this.phase5HeadTip.setPosition(position.x, position.y);
-      drawArm();
-      return;
-    }
-
-    this.tweens.add({
-      targets: this.phase5HeadTip,
-      x: position.x,
-      y: position.y,
-      duration: 340,
-      ease: "Sine.inOut",
-      onUpdate: drawArm,
-      onComplete: () => {
-        drawArm();
-        if (onComplete) {
-          onComplete();
-        }
-      },
-    });
-  }
-
-  updateStabilizeButton() {
-    if (!this.phase5StabilizeButton) {
-      return;
-    }
-
-    this.phase5StabilizeButton.setVisible(this.phase5IsVibrating);
-    if (this.phase5IsVibrating) {
-      this.phase5StabilizeButton.setEnabled(true);
-    } else {
-      this.phase5StabilizeButton.setEnabled(false);
-    }
-  }
-
   showFeedback(message, type = "neutral") {
     const colors = {
+      neutral: "#8da2bd",
       success: "#8ef28b",
       error: "#ff9b78",
       warning: "#ffd166",
-      neutral: "#8da2bd",
     };
-    this.phase5FeedbackText.setText(message).setColor(colors[type] ?? colors.neutral);
 
-    this.tweens.killTweensOf(this.phase5FeedbackText);
-    this.tweens.add({
-      targets: this.phase5FeedbackText,
-      scale: type === "error" ? 1.03 : 1.02,
-      duration: 100,
-      yoyo: true,
-      ease: "Sine.inOut",
-    });
+    this.phase5MessageText
+      .setText(message)
+      .setColor(colors[type] ?? colors.neutral);
   }
 
-  showSuccess(message) {
-    this.showFeedback(message, "success");
+  showSuccess() {
+    this.phase5IsComplete = true;
+    this.disableChallengeControls();
+    this.showFeedback("Leitura concluída com sucesso!", "success");
 
-    const sector = this.phase5SectorObjects[this.phase5CurrentSectorIndex];
-    this.tweens.add({
-      targets: sector.container,
-      scale: 1.22,
-      duration: 130,
-      yoyo: true,
-      repeat: 1,
-      ease: "Sine.inOut",
-    });
-  }
-
-  showFailure(message) {
-    this.showFeedback(message, "error");
-    this.cameras.main.shake(130, 0.002);
+    this.phase5DiscGlow
+      .setFillStyle(0x8ef28b, 0.1)
+      .setStrokeStyle(4, 0x8ef28b, 0.9)
+      .setBlendMode(Phaser.BlendModes.ADD);
 
     this.tweens.add({
-      targets: this.phase5SectorHighlight,
-      scale: 1.28,
-      alpha: 0.22,
-      duration: 90,
+      targets: this.phase5DiscGlow,
+      scale: 1.12,
+      alpha: 0.3,
+      duration: 340,
       yoyo: true,
       repeat: 2,
       ease: "Sine.inOut",
+    });
+    this.tweens.add({
+      targets: this.phase5DiscContainer,
+      angle: 360,
+      duration: 1300,
+      ease: "Cubic.out",
+    });
+
+    this.createSuccessSparkles();
+    this.time.delayedCall(1500, () => this.showConclusion());
+  }
+
+  createSuccessSparkles() {
+    const positions = [
+      [232, 170],
+      [310, 120],
+      [410, 124],
+      [487, 180],
+      [470, 348],
+      [244, 350],
+    ];
+
+    positions.forEach(([x, y], index) => {
+      const sparkle = this.add
+        .rectangle(x, y, 8, 8, index % 2 === 0 ? 0x8ef28b : 0x62e7f2, 0.9)
+        .setRotation(Math.PI / 4);
+      this.addToStage(sparkle);
+
+      this.tweens.add({
+        targets: sparkle,
+        scale: 2.1,
+        alpha: 0,
+        angle: 135,
+        duration: 560,
+        delay: index * 50,
+        ease: "Sine.out",
+      });
     });
   }
 
@@ -920,8 +1162,8 @@ export default class Phase5Scene extends Phaser.Scene {
     this.phase5Stage = this.add.container(0, 0);
 
     const glow = this.add
-      .circle(480, 124, 80, 0xff8f70, 0.07)
-      .setStrokeStyle(2, 0xff8f70, 0.28);
+      .circle(480, 125, 78, 0xc49cff, 0.07)
+      .setStrokeStyle(2, 0xc49cff, 0.3);
     this.addToStage(glow);
     this.tweens.add({
       targets: glow,
@@ -943,29 +1185,30 @@ export default class Phase5Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
-    this.createCompletionHardDrive(480, 126);
+    this.createCompletionDisc(480, 126);
 
-    const panel = this.add.graphics();
-    panel.fillStyle(0x0d1930, 0.97);
-    panel.fillRoundedRect(96, 194, 768, 220, 18);
-    panel.lineStyle(2, 0xff8f70, 0.42);
-    panel.strokeRoundedRect(96, 194, 768, 220, 18);
-    this.addToStage(panel);
+    this.addToStage(
+      createRoundedPanel(this, 480, 301, 770, 220, {
+        stroke: 0xc49cff,
+        strokeAlpha: 0.42,
+        radius: 18,
+      }),
+    );
 
     this.addToStage(
       this.add
         .text(
           480,
           280,
-          "Você aprendeu que o HD oferece grande capacidade de armazenamento,\nmas depende de partes mecânicas, como pratos giratórios e cabeça de leitura.\nPor isso, impactos e vibrações podem causar falhas.",
+          "Você aprendeu que CDs e DVDs armazenam dados de forma óptica,\nusando laser. Eles oferecem mais capacidade que disquetes,\nmas podem falhar quando estão sujos ou arranhados.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "18px",
+            fontSize: "19px",
             fontStyle: "700",
             color: "#dce8f5",
             align: "center",
             lineSpacing: 7,
-            wordWrap: { width: 690 },
+            wordWrap: { width: 710 },
           },
         )
         .setOrigin(0.5),
@@ -973,7 +1216,7 @@ export default class Phase5Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 372, `PONTUAÇÃO FINAL: ${finalScore}`, {
+        .text(480, 370, `PONTUAÇÃO FINAL: ${finalScore}`, {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "12px",
           color: "#ffd166",
@@ -987,7 +1230,7 @@ export default class Phase5Scene extends Phaser.Scene {
       310,
       "VOLTAR À LINHA DO TEMPO",
       () => this.returnToTimeline(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "9px" },
     );
     this.createButton(
       656,
@@ -1008,111 +1251,50 @@ export default class Phase5Scene extends Phaser.Scene {
     });
   }
 
-  getSectorPosition(file) {
-    const radians = Phaser.Math.DegToRad(file.angle);
-    return {
-      x: PHASE5_PLATTER_CENTER.x + Math.cos(radians) * file.radius,
-      y: PHASE5_PLATTER_CENTER.y + Math.sin(radians) * file.radius,
-    };
+  createIntroDisc(x, y) {
+    const disc = this.add.graphics();
+    disc.fillStyle(0xb6c8d6, 1);
+    disc.fillCircle(x, y, 82);
+    disc.lineStyle(8, 0x62e7f2, 0.3);
+    disc.strokeCircle(x, y, 67);
+    disc.lineStyle(7, 0xc49cff, 0.3);
+    disc.strokeCircle(x, y, 48);
+    disc.fillStyle(0x0b1627, 1);
+    disc.fillCircle(x, y, 18);
+    disc.lineStyle(4, 0x8799a8, 0.8);
+    disc.strokeCircle(x, y, 18);
+    disc.fillStyle(0xffffff, 0.2);
+    disc.beginPath();
+    disc.moveTo(x - 59, y - 48);
+    disc.lineTo(x - 12, y - 10);
+    disc.lineTo(x - 32, y + 13);
+    disc.lineTo(x - 72, y - 27);
+    disc.closePath();
+    disc.fillPath();
+    this.addToStage(disc);
   }
 
-  createRecoverySparkles(sectorIndex) {
-    const file = this.phase5Files[sectorIndex];
-    const position = this.getSectorPosition(file);
-    const globalX = PHASE5_DRIVE_POSITION.x + position.x;
-    const globalY = PHASE5_DRIVE_POSITION.y + position.y;
-    const offsets = [
-      [-13, -11],
-      [13, -8],
-      [-9, 13],
-      [12, 12],
-    ];
-
-    offsets.forEach(([offsetX, offsetY], index) => {
-      const sparkle = this.add
-        .rectangle(
-          globalX + offsetX,
-          globalY + offsetY,
-          6,
-          6,
-          index % 2 === 0 ? 0x8ef28b : 0x62e7f2,
-          0.9,
-        )
-        .setRotation(Math.PI / 4);
-      this.addToStage(sparkle);
-      this.tweens.add({
-        targets: sparkle,
-        scale: 2,
-        alpha: 0,
-        angle: 135,
-        duration: 430,
-        delay: index * 35,
-        ease: "Sine.out",
-      });
-    });
-  }
-
-  createIntroHardDrive(x, y) {
-    const hd = this.add.graphics();
-    hd.fillStyle(0x13283a, 1);
-    hd.fillRoundedRect(x - 105, y - 62, 210, 124, 16);
-    hd.lineStyle(3, 0xff8f70, 0.74);
-    hd.strokeRoundedRect(x - 105, y - 62, 210, 124, 16);
-    hd.fillStyle(0xb7c9d6, 1);
-    hd.fillCircle(x - 26, y, 48);
-    hd.lineStyle(4, 0x62e7f2, 0.28);
-    hd.strokeCircle(x - 26, y, 33);
-    hd.fillStyle(0x0b1627, 1);
-    hd.fillCircle(x - 26, y, 12);
-    hd.lineStyle(7, 0x60758a, 1);
-    hd.lineBetween(x + 46, y + 38, x + 5, y + 5);
-    hd.fillStyle(0xffd166, 1);
-    hd.fillCircle(x + 5, y + 5, 5);
-    this.addToStage(hd);
-  }
-
-  createCompletionHardDrive(x, y) {
-    const hd = this.add.graphics();
-    hd.fillStyle(0x13283a, 1);
-    hd.fillRoundedRect(x - 58, y - 36, 116, 72, 12);
-    hd.lineStyle(3, 0x8ef28b, 0.85);
-    hd.strokeRoundedRect(x - 58, y - 36, 116, 72, 12);
-    hd.fillStyle(0xb7c9d6, 1);
-    hd.fillCircle(x - 16, y, 26);
-    hd.fillStyle(0x0b1627, 1);
-    hd.fillCircle(x - 16, y, 7);
-    hd.lineStyle(5, 0x60758a, 1);
-    hd.lineBetween(x + 28, y + 22, x + 1, y + 2);
-    hd.fillStyle(0x8ef28b, 1);
-    hd.fillCircle(x + 2, y + 2, 4);
-    this.addToStage(hd);
+  createCompletionDisc(x, y) {
+    const disc = this.add.graphics();
+    disc.fillStyle(0xb6c8d6, 1);
+    disc.fillCircle(x, y, 53);
+    disc.lineStyle(6, 0xc49cff, 0.35);
+    disc.strokeCircle(x, y, 39);
+    disc.fillStyle(0x0b1627, 1);
+    disc.fillCircle(x, y, 13);
+    disc.lineStyle(3, 0x8ef28b, 0.9);
+    disc.strokeCircle(x, y, 53);
+    disc.fillStyle(0x8ef28b, 1);
+    disc.fillCircle(x, y, 5);
+    this.addToStage(disc);
   }
 
   disableChallengeControls() {
-    [
-      this.phase5BackButton,
-      this.phase5ForwardButton,
-      this.phase5ReadButton,
-      this.phase5StabilizeButton,
-    ].forEach((button) => {
-      if (button?.setEnabled) {
-        button.setEnabled(false);
-      } else if (button?.background) {
-        button.background.disableInteractive();
-      }
-    });
-  }
-
-  stopVibrationTweens() {
-    if (this.phase5VibrationTween) {
-      this.phase5VibrationTween.stop();
-      this.phase5VibrationTween = null;
-    }
-
-    if (this.phase5VibrationPulse) {
-      this.phase5VibrationPulse.stop();
-      this.phase5VibrationPulse = null;
-    }
+    this.phase5ReadButton.background.disableInteractive();
+    this.phase5DirtObjects.forEach(({ hitArea }) => hitArea.disableInteractive());
+    this.phase5ScratchObjects.forEach(({ hitArea }) =>
+      hitArea.disableInteractive(),
+    );
   }
 
   restartPhase() {
@@ -1128,13 +1310,14 @@ export default class Phase5Scene extends Phaser.Scene {
       border: options.border ?? 0x62e7f2,
       hover: options.hover ?? 0x1c5264,
       fontSize: options.fontSize ?? "10px",
+      height: options.height ?? 56,
       addToStage: (button) => this.addToStage(button),
     });
   }
 
   createBackLink() {
     const text = this.add
-      .text(38, 31, "< LINHA DO TEMPO", {
+      .text(38, 29, "< LINHA DO TEMPO", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "14px",
         fontStyle: "800",
@@ -1154,7 +1337,6 @@ export default class Phase5Scene extends Phaser.Scene {
   }
 
   clearStage() {
-    this.stopVibrationTweens();
     this.tweens.killAll();
 
     if (this.phase5Stage) {
