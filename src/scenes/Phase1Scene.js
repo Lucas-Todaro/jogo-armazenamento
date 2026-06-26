@@ -643,20 +643,28 @@ export default class Phase1Scene extends Phaser.Scene {
     );
 
     this.createButton(
-      304,
+      180,
       462,
-      310,
+      240,
       "VOLTAR À LINHA DO TEMPO",
       () => this.returnToTimeline(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "7px" },
     );
     this.createButton(
-      656,
+      480,
       462,
-      270,
+      240,
+      "PRÓXIMA FASE",
+      () => this.scene.start("Phase2Scene"),
+      { border: 0xffd166, hover: 0x5f4a1f, fontSize: "9px" },
+    );
+    this.createButton(
+      780,
+      462,
+      240,
       "JOGAR NOVAMENTE",
       () => this.restartPhase(),
-      { border: 0x8ef28b, hover: 0x246a69, fontSize: "10px" },
+      { border: 0x8ef28b, hover: 0x246a69, fontSize: "9px" },
     );
 
     this.stageContainer.setAlpha(0);

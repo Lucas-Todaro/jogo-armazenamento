@@ -12,13 +12,14 @@ import Phase7Scene from "./scenes/Phase7Scene.js";
 
 const GAME_WIDTH = 1920;
 const GAME_HEIGHT = 1080;
+const RENDER_RESOLUTION = Math.min(window.devicePixelRatio || 1, 2);
 
 const config = {
   type: Phaser.AUTO,
   parent: "game-container",
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
-  resolution: 1,
+  resolution: RENDER_RESOLUTION,
   backgroundColor: "#07101f",
   scene: [
     BootScene,

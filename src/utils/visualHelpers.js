@@ -49,6 +49,7 @@ export function configureSceneViewport(scene) {
   const zoom = Math.min(viewWidth / GAME_SIZE.width, viewHeight / GAME_SIZE.height);
 
   camera.setZoom(zoom);
+  camera.roundPixels = false;
   camera.centerOn(GAME_SIZE.width / 2, GAME_SIZE.height / 2);
   camera.setBackgroundColor("#07101f");
 }
