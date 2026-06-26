@@ -7,7 +7,7 @@ import { createStandardButton, drawRetroBackground } from "../utils/visualHelper
 
 const PHASE3_STARTING_SCORE = 100;
 const PHASE3_TARGET_COUNT = 3;
-const PHASE3_DRIVE_POSITION = { x: 342, y: 278 };
+const PHASE3_DRIVE_POSITION = { x: 334, y: 276 };
 const PHASE3_PLATTER_CENTER = { x: -10, y: -8 };
 const PHASE3_HEAD_PIVOT = { x: 148, y: 124 };
 const PHASE3_FILE_POOL = [
@@ -111,7 +111,7 @@ export default class Phase3Scene extends Phaser.Scene {
           "Recupere os arquivos corretos movendo a cabeça de leitura,\nmas cuidado com vibrações.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "17px",
+            fontSize: "16px",
             fontStyle: "900",
             color: "#ffd166",
             align: "center",
@@ -122,13 +122,39 @@ export default class Phase3Scene extends Phaser.Scene {
         .setOrigin(0.5),
     );
 
+    const notePanel = this.add.graphics();
+    notePanel.fillStyle(0x101f35, 0.92);
+    notePanel.fillRoundedRect(160, 407, 640, 48, 12);
+    notePanel.lineStyle(2, 0x62e7f2, 0.24);
+    notePanel.strokeRoundedRect(160, 407, 640, 48, 12);
+    this.addToStage(notePanel);
+
+    this.addToStage(
+      this.add
+        .text(
+          480,
+          431,
+          "Observação: o primeiro HD surgiu em 1956, mas seu uso em computadores pessoais só se tornou comum décadas depois, principalmente nos anos 80.",
+          {
+            fontFamily: '"Nunito", sans-serif',
+            fontSize: "12px",
+            fontStyle: "800",
+            color: "#c7d7e8",
+            align: "center",
+            lineSpacing: 4,
+            wordWrap: { width: 586 },
+          },
+        )
+        .setOrigin(0.5),
+    );
+
     this.createButton(
       480,
-      454,
-      292,
+      494,
+      270,
       "COMEÇAR DESAFIO",
       () => this.startChallenge(),
-      { border: 0x8ef28b, hover: 0x246a69, fontSize: "10px" },
+      { border: 0x8ef28b, hover: 0x246a69, fontSize: "9px", height: 46 },
     );
     this.createBackLink();
   }
@@ -150,16 +176,16 @@ export default class Phase3Scene extends Phaser.Scene {
 
     this.addToStage(
       this.add
-        .text(480, 31, "DISCO RÍGIDO MAGNÉTICO", {
+        .text(480, 33, "FASE 3: HD / DISCO RÍGIDO", {
           fontFamily: '"Press Start 2P", monospace',
-          fontSize: "15px",
+          fontSize: "14px",
           color: "#ff8f70",
         })
         .setOrigin(0.5),
     );
 
     this.phase3ScoreText = this.add
-      .text(910, 31, "PONTOS: 100", {
+      .text(904, 33, "PONTOS: 100", {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: "9px",
         color: "#8ef28b",
@@ -243,24 +269,24 @@ export default class Phase3Scene extends Phaser.Scene {
   createObjectivePanel() {
     const panel = this.add.graphics();
     panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(142, 52, 676, 58, 12);
+    panel.fillRoundedRect(150, 64, 660, 50, 12);
     panel.lineStyle(2, 0xffd166, 0.4);
-    panel.strokeRoundedRect(142, 52, 676, 58, 12);
+    panel.strokeRoundedRect(150, 64, 660, 50, 12);
     this.addToStage(panel);
 
     this.addToStage(
       this.add
         .text(
           480,
-          81,
+          89,
           "Objetivo: mova a cabeça de leitura até o setor correto e recupere os arquivos.",
           {
             fontFamily: '"Nunito", sans-serif',
-            fontSize: "16px",
+            fontSize: "15px",
             fontStyle: "900",
             color: "#f1f7ff",
             align: "center",
-            wordWrap: { width: 620 },
+            wordWrap: { width: 606 },
           },
         )
         .setOrigin(0.5),
@@ -453,14 +479,14 @@ export default class Phase3Scene extends Phaser.Scene {
   createStatusPanel() {
     const panel = this.add.graphics();
     panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(568, 124, 334, 140, 14);
+    panel.fillRoundedRect(578, 130, 310, 128, 14);
     panel.lineStyle(2, 0xff8f70, 0.4);
-    panel.strokeRoundedRect(568, 124, 334, 140, 14);
+    panel.strokeRoundedRect(578, 130, 310, 128, 14);
     this.addToStage(panel);
 
     this.addToStage(
       this.add
-        .text(735, 146, "ARQUIVO PROCURADO", {
+        .text(733, 150, "ARQUIVO PROCURADO", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "8px",
           color: "#ffd166",
@@ -469,31 +495,31 @@ export default class Phase3Scene extends Phaser.Scene {
     );
 
     this.phase3TargetText = this.add
-      .text(735, 181, "", {
+      .text(733, 183, "", {
         fontFamily: '"Nunito", sans-serif',
-        fontSize: "24px",
+        fontSize: "22px",
         fontStyle: "900",
         color: "#f1f7ff",
         align: "center",
-        wordWrap: { width: 292 },
+        wordWrap: { width: 270 },
       })
       .setOrigin(0.5);
     this.addToStage(this.phase3TargetText);
 
     this.phase3CurrentSectorText = this.add
-      .text(735, 222, "", {
+      .text(733, 220, "", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "13px",
         fontStyle: "800",
         color: "#c7d7e8",
         align: "center",
-        wordWrap: { width: 288 },
+        wordWrap: { width: 270 },
       })
       .setOrigin(0.5);
     this.addToStage(this.phase3CurrentSectorText);
 
     this.phase3RecoveredText = this.add
-      .text(735, 246, "", {
+      .text(733, 242, "", {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: "8px",
         color: "#8ef28b",
@@ -505,14 +531,14 @@ export default class Phase3Scene extends Phaser.Scene {
   createTipBox() {
     const panel = this.add.graphics();
     panel.fillStyle(0x101f35, 0.98);
-    panel.fillRoundedRect(592, 286, 286, 84, 12);
+    panel.fillRoundedRect(596, 280, 276, 82, 12);
     panel.lineStyle(2, 0x62e7f2, 0.34);
-    panel.strokeRoundedRect(592, 286, 286, 84, 12);
+    panel.strokeRoundedRect(596, 280, 276, 82, 12);
     this.addToStage(panel);
 
     this.addToStage(
       this.add
-        .text(735, 308, "DICA", {
+        .text(734, 301, "DICA", {
           fontFamily: '"Press Start 2P", monospace',
           fontSize: "8px",
           color: "#62e7f2",
@@ -523,8 +549,8 @@ export default class Phase3Scene extends Phaser.Scene {
     this.addToStage(
       this.add
         .text(
-          735,
-          340,
+          734,
+          332,
           "O HD usa uma cabeça mecânica para acessar setores nos pratos magnéticos.",
           {
             fontFamily: '"Nunito", sans-serif',
@@ -533,7 +559,7 @@ export default class Phase3Scene extends Phaser.Scene {
             color: "#c7d7e8",
             align: "center",
             lineSpacing: 3,
-            wordWrap: { width: 246 },
+            wordWrap: { width: 236 },
           },
         )
         .setOrigin(0.5),
@@ -542,58 +568,58 @@ export default class Phase3Scene extends Phaser.Scene {
 
   createControls() {
     this.phase3BackButton = this.createButton(
-      190,
-      454,
-      170,
+      206,
+      440,
+      148,
       "SETOR ANTERIOR",
       () => this.moveToPreviousSector(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "7px", height: 42 },
     );
 
     this.phase3ForwardButton = this.createButton(
-      382,
-      454,
-      170,
+      378,
+      440,
+      148,
       "PRÓXIMO SETOR",
       () => this.moveToNextSector(),
-      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "8px" },
+      { border: 0x62e7f2, hover: 0x1c5264, fontSize: "7px", height: 42 },
     );
 
     this.phase3ReadButton = this.createButton(
-      574,
-      454,
-      170,
+      550,
+      440,
+      148,
       "LER SETOR",
       () => this.readCurrentSector(),
-      { border: 0x8ef28b, hover: 0x246a69, fontSize: "9px" },
+      { border: 0x8ef28b, hover: 0x246a69, fontSize: "8px", height: 42 },
     );
 
     this.phase3StabilizeButton = this.createButton(
-      782,
-      454,
-      214,
+      758,
+      440,
+      190,
       "ESTABILIZAR HD",
       () => this.stabilizeHardDrive(),
-      { border: 0xffd166, hover: 0x5c4b22, fontSize: "8px" },
+      { border: 0xffd166, hover: 0x5c4b22, fontSize: "7px", height: 42 },
     );
   }
 
   createFeedbackBox() {
     const panel = this.add.graphics();
     panel.fillStyle(0x091424, 0.98);
-    panel.fillRoundedRect(90, 492, 780, 34, 10);
+    panel.fillRoundedRect(106, 476, 748, 36, 10);
     panel.lineStyle(2, 0x62e7f2, 0.25);
-    panel.strokeRoundedRect(90, 492, 780, 34, 10);
+    panel.strokeRoundedRect(106, 476, 748, 36, 10);
     this.addToStage(panel);
 
     this.phase3FeedbackText = this.add
-      .text(480, 509, "Use os botões para mover a cabeça até o arquivo procurado.", {
+      .text(480, 494, "Use os botões para mover a cabeça até o arquivo procurado.", {
         fontFamily: '"Nunito", sans-serif',
         fontSize: "14px",
         fontStyle: "900",
         color: "#8da2bd",
         align: "center",
-        wordWrap: { width: 720 },
+        wordWrap: { width: 690 },
       })
       .setOrigin(0.5);
     this.addToStage(this.phase3FeedbackText);
@@ -1128,6 +1154,7 @@ export default class Phase3Scene extends Phaser.Scene {
       border: options.border ?? 0x62e7f2,
       hover: options.hover ?? 0x1c5264,
       fontSize: options.fontSize ?? "10px",
+      height: options.height ?? 56,
       addToStage: (button) => this.addToStage(button),
     });
   }
