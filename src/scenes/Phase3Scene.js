@@ -107,7 +107,7 @@ export default class Phase3Scene extends Phaser.Scene {
       this.add
         .text(
           480,
-          390,
+          374,
           "Recupere os arquivos corretos movendo a cabeça de leitura,\nmas cuidado com vibrações.",
           {
             fontFamily: '"Nunito", sans-serif',
@@ -124,16 +124,16 @@ export default class Phase3Scene extends Phaser.Scene {
 
     const notePanel = this.add.graphics();
     notePanel.fillStyle(0x101f35, 0.92);
-    notePanel.fillRoundedRect(160, 407, 640, 48, 12);
+    notePanel.fillRoundedRect(160, 426, 640, 48, 12);
     notePanel.lineStyle(2, 0x62e7f2, 0.24);
-    notePanel.strokeRoundedRect(160, 407, 640, 48, 12);
+    notePanel.strokeRoundedRect(160, 426, 640, 48, 12);
     this.addToStage(notePanel);
 
     this.addToStage(
       this.add
         .text(
           480,
-          431,
+          450,
           "Observação: o primeiro HD surgiu em 1956, mas seu uso em computadores pessoais só se tornou comum décadas depois, principalmente nos anos 80.",
           {
             fontFamily: '"Nunito", sans-serif',
@@ -150,7 +150,7 @@ export default class Phase3Scene extends Phaser.Scene {
 
     this.createButton(
       480,
-      494,
+      506,
       270,
       "COMEÇAR DESAFIO",
       () => this.startChallenge(),
