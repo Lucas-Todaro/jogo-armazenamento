@@ -393,9 +393,11 @@ export default class Phase2Scene extends Phaser.Scene {
       .rectangle(0, 43, 9, 74, 0x62e7f2, 0.28)
       .setOrigin(0.5, 0)
       .setBlendMode(Phaser.BlendModes.ADD);
-    const pointer = this.add
-      .triangle(0, 26, -23, -8, 23, -8, 0, 31, 0x62e7f2, 0.28)
-      .setStrokeStyle(2, 0x62e7f2, 0.9);
+    const pointer = this.add.graphics();
+    pointer.fillStyle(0x62e7f2, 0.28);
+    pointer.lineStyle(2, 0x62e7f2, 0.9);
+    pointer.fillTriangle(-24, 12, 24, 12, 0, 56);
+    pointer.strokeTriangle(-24, 12, 24, 12, 0, 56);
     const body = this.add
       .rectangle(0, -12, 54, 34, 0x153e50, 1)
       .setStrokeStyle(3, 0x8ef28b, 0.95);
