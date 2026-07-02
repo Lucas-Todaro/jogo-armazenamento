@@ -1,4 +1,8 @@
-import { completePhase, savePhaseScore } from "../utils/progressManager.js";
+import {
+  completePhase,
+  getStartingScoreForPhase,
+  savePhaseScore,
+} from "../utils/progressManager.js";
 import {
   createRoundedPanel,
   createStandardButton,
@@ -103,7 +107,8 @@ export default class Phase1Scene extends Phaser.Scene {
   }
 
   startChallenge() {
-    this.score = STARTING_SCORE;
+    this.score = getStartingScoreForPhase(1, STARTING_SCORE);
+    this.maxScore = this.score + STARTING_SCORE;
     this.wrongAttempts = 0;
     this.targetSequence = this.generateRandomSequence(this.targetSequence);
     this.currentBits = Array(BIT_COUNT).fill(0);
@@ -125,7 +130,7 @@ export default class Phase1Scene extends Phaser.Scene {
     );
 
     this.scoreText = this.add
-      .text(916, 31, "PONTOS: 100", {
+      .text(916, 31, `PONTOS: ${this.score}`, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: "10px",
         color: "#8ef28b",
@@ -464,7 +469,7 @@ export default class Phase1Scene extends Phaser.Scene {
   }
 
   updateScore(change) {
-    this.score = Phaser.Math.Clamp(this.score + change, 0, STARTING_SCORE);
+    this.score = Phaser.Math.Clamp(this.score + change, 0, this.maxScore);
     this.scoreText.setText(`PONTOS: ${this.score}`);
 
     this.tweens.add({

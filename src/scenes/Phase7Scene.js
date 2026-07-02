@@ -1,6 +1,7 @@
 import {
   completePhase,
   getTotalScore,
+  getStartingScoreForPhase,
   isPhaseUnlocked,
   savePhaseScore,
 } from "../utils/progressManager.js";
@@ -290,7 +291,8 @@ export default class Phase7Scene extends Phaser.Scene {
   }
 
   startChallenge() {
-    this.phase7Score = PHASE7_STARTING_SCORE;
+    this.phase7Score = getStartingScoreForPhase(7, PHASE7_STARTING_SCORE);
+    this.phase7MaxScore = this.phase7Score + PHASE7_STARTING_SCORE;
     this.phase7CurrentIndex = 0;
     this.phase7SSDCount = 0;
     this.phase7CloudCount = 0;
@@ -469,7 +471,7 @@ export default class Phase7Scene extends Phaser.Scene {
     );
 
     this.phase7ScoreText = this.add
-      .text(916, 28, "PONTOS: 100", {
+      .text(916, 28, `PONTOS: ${this.phase7Score}`, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: "10px",
         color: "#8ef28b",
@@ -845,7 +847,7 @@ export default class Phase7Scene extends Phaser.Scene {
     this.phase7Score = Phaser.Math.Clamp(
       this.phase7Score + change,
       0,
-      PHASE7_STARTING_SCORE,
+      this.phase7MaxScore,
     );
     this.phase7ScoreText.setText(`PONTOS: ${this.phase7Score}`);
     this.tweens.add({

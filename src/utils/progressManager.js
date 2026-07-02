@@ -12,6 +12,8 @@ function createDefaultProgress() {
   };
 }
 
+const MAX_ACCUMULATED_SCORE = JORNADA_DO_BIT_TOTAL_PHASES * 100;
+
 function normalizeProgress(progress) {
   const defaultProgress = createDefaultProgress();
 
@@ -63,7 +65,9 @@ function normalizeProgress(progress) {
     const score = Number(savedPhaseScores[phase]);
 
     if (Number.isFinite(score)) {
-      phaseScores[phase] = Math.round(Math.min(Math.max(score, 0), 100));
+      phaseScores[phase] = Math.round(
+        Math.min(Math.max(score, 0), MAX_ACCUMULATED_SCORE),
+      );
     }
   }
 
@@ -182,7 +186,9 @@ export function savePhaseScore(phaseNumber, score) {
     return;
   }
 
-  const safeScore = Math.round(Math.min(Math.max(normalizedScore, 0), 100));
+  const safeScore = Math.round(
+    Math.min(Math.max(normalizedScore, 0), MAX_ACCUMULATED_SCORE),
+  );
   const previousScore = Number(progress.phaseScores[normalizedPhase]) || 0;
   progress.phaseScores[normalizedPhase] = Math.max(previousScore, safeScore);
   saveProgress(progress);
@@ -202,13 +208,24 @@ export function getPhaseScore(phaseNumber) {
   return getProgress().phaseScores[normalizedPhase] || 0;
 }
 
+export function getStartingScoreForPhase(phaseNumber, fallbackScore = 100) {
+  const normalizedPhase = Number(phaseNumber);
+  const normalizedFallback = Number(fallbackScore);
+
+  if (!Number.isInteger(normalizedPhase) || normalizedPhase <= 1) {
+    return Number.isFinite(normalizedFallback) ? normalizedFallback : 100;
+  }
+
+  const previousScore = getPhaseScore(normalizedPhase - 1);
+
+  return previousScore || (Number.isFinite(normalizedFallback) ? normalizedFallback : 100);
+}
+
 export function getTotalScore() {
   const progress = getProgress();
+  const lastCompletedPhase = Math.max(0, ...progress.completedPhases);
 
-  return Object.values(progress.phaseScores).reduce(
-    (total, score) => total + score,
-    0,
-  );
+  return lastCompletedPhase > 0 ? progress.phaseScores[lastCompletedPhase] || 0 : 0;
 }
 
 export function isPhaseUnlocked(phaseNumber) {

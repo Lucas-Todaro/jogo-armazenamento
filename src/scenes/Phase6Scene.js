@@ -1,5 +1,6 @@
 import {
   completePhase,
+  getStartingScoreForPhase,
   isPhaseUnlocked,
   savePhaseScore,
 } from "../utils/progressManager.js";
@@ -236,7 +237,8 @@ export default class Phase6Scene extends Phaser.Scene {
   }
 
   startChallenge() {
-    this.phase6Score = PHASE6_STARTING_SCORE;
+    this.phase6Score = getStartingScoreForPhase(6, PHASE6_STARTING_SCORE);
+    this.phase6MaxScore = this.phase6Score + PHASE6_STARTING_SCORE;
     this.phase6SelectedIds = new Set();
     this.phase6CopiedIds = new Set();
     this.phase6IsCopied = false;
@@ -278,7 +280,7 @@ export default class Phase6Scene extends Phaser.Scene {
     );
 
     this.phase6ScoreText = this.add
-      .text(916, 28, "PONTOS: 100", {
+      .text(916, 28, `PONTOS: ${this.phase6Score}`, {
         fontFamily: '"Press Start 2P", monospace',
         fontSize: "10px",
         color: "#8ef28b",
@@ -1254,7 +1256,7 @@ export default class Phase6Scene extends Phaser.Scene {
     this.phase6Score = Phaser.Math.Clamp(
       this.phase6Score + change,
       0,
-      PHASE6_STARTING_SCORE,
+      this.phase6MaxScore,
     );
     this.phase6ScoreText.setText(`PONTOS: ${this.phase6Score}`);
 
